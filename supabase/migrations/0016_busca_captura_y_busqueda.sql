@@ -1,15 +1,8 @@
 -- =====================================================================
--- Aplica en tu base de datos ya existente lo último añadido:
---  1) Búsqueda de ciudadanos (denuncias y policía) de verdad robusta:
---     por palabras sueltas y sin distinguir acentos, así que "Juan
---     Perez" encuentra a "Juan Pérez" y da igual el orden nombre/
---     apellidos.
---  2) Busca y captura: matrícula opcional del vehículo al marcar a
---     alguien, y una vista para listarlos todos con foto, nombre y
---     matrícula.
--- Es idempotente: se puede ejecutar varias veces sin problema.
+-- 1) Búsqueda de ciudadanos realmente robusta: por palabras sueltas y
+--    sin distinguir acentos (antes "Juan Perez" no encontraba a "Juan
+--    Pérez" porque las tildes no coinciden con ILIKE normal).
 -- =====================================================================
-
 do $$
 begin
   if exists (select 1 from pg_extension where extname = 'unaccent') then
@@ -64,6 +57,9 @@ begin
 end;
 $$;
 
+-- Misma lógica (por palabras sueltas, sin acentos) para la búsqueda de
+-- policía, que antes hacía el filtro directamente en el backend con
+-- ilike y tenía el mismo fallo con nombres completos.
 create or replace function public.search_citizens_police(p_query text, p_by text default 'nombre')
 returns setof public.citizen_profile_view
 language plpgsql security definer set search_path = public as $$
@@ -96,8 +92,15 @@ begin
 end;
 $$;
 
+-- =====================================================================
+-- 2) Busca y captura: matrícula opcional del vehículo + listado para
+--    policía (foto del DNI, nombre y apellidos, matrícula si se puso).
+-- =====================================================================
 alter table public.wanted_persons add column if not exists vehicle_plate text;
 
+-- El nuevo parámetro opcional cambia la firma de la función: hay que
+-- borrar la versión antigua de 2 argumentos o quedan las dos a la vez y
+-- PostgREST no sabe cuál usar al llamarla por RPC.
 drop function if exists public.police_set_wanted(uuid, text);
 
 create or replace function public.police_set_wanted(p_citizen_id uuid, p_reason text, p_vehicle_plate text default null)

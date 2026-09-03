@@ -60,6 +60,37 @@ export default function WantedOverlay({ profileId, initialWanted }: { profileId:
     };
   }, [profileId]);
 
+  // Comprobación periódica además del realtime: así el efecto aparece y
+  // desaparece de forma fiable aunque el "postgres_changes" no llegue
+  // (redes raras, reconexión, etc.) sin depender solo de la conexión en
+  // directo ni de recargar la página.
+  useEffect(() => {
+    if (!profileId) return;
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('wanted_persons')
+          .select('active')
+          .eq('citizen_id', profileId)
+          .eq('active', true)
+          .limit(1)
+          .maybeSingle();
+        if (!cancelled) setWanted(Boolean(data));
+      } catch (err) {
+        console.error('[wanted-overlay] fallo comprobando estado (se reintentará)', err);
+      }
+    }
+
+    const id = setInterval(poll, 8000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [profileId]);
+
   if (!wanted) return null;
 
   return (

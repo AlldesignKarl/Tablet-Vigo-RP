@@ -131,6 +131,12 @@ export default function PoliceCitizenProfile({
                   <p className="text-xs text-slate-400">
                     {v.brand} {v.model} · {v.color}
                   </p>
+                  <p className="mt-1 text-xs">
+                    Vehículo incautado:{' '}
+                    <span className={v.impounded ? 'font-bold text-success-500' : 'font-bold text-danger-500'}>
+                      {v.impounded ? 'Sí' : 'No'}
+                    </span>
+                  </p>
                 </div>
                 {v.impounded ? (
                   <button onClick={() => release(v.id)} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs text-white hover:bg-white/20">
@@ -415,6 +421,7 @@ function PointsModal({
 
 function WantedModal({ citizenId, loading, onSubmit, onClose }: ModalProps) {
   const [reason, setReason] = useState('');
+  const [vehiclePlate, setVehiclePlate] = useState('');
   return (
     <ModalShell
       title="🚨 Poner en busca y captura"
@@ -422,11 +429,18 @@ function WantedModal({ citizenId, loading, onSubmit, onClose }: ModalProps) {
       loading={loading}
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit('/api/police/set-wanted', { citizenId, reason }, 'Busca y captura activada');
+        onSubmit('/api/police/set-wanted', { citizenId, reason, vehiclePlate: vehiclePlate || undefined }, 'Busca y captura activada');
       }}
     >
       <label className="block text-xs text-slate-400">Motivo</label>
       <input required value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls()} />
+      <label className="block text-xs text-slate-400">Matrícula del vehículo (opcional)</label>
+      <input
+        value={vehiclePlate}
+        onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())}
+        placeholder="Ej. 1234ABC"
+        className={inputCls() + ' font-mono uppercase'}
+      />
     </ModalShell>
   );
 }

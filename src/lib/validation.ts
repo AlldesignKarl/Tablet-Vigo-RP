@@ -79,6 +79,7 @@ export const removePointsSchema = z.object({
 export const wantedSchema = z.object({
   citizenId: z.string().uuid(),
   reason: z.string().trim().min(3).max(300),
+  vehiclePlate: z.string().trim().max(12).optional(),
 });
 
 export const clearWantedSchema = z.object({ citizenId: z.string().uuid() });

@@ -262,6 +262,7 @@ export interface Database {
           citizen_id: string;
           officer_id: string;
           reason: string;
+          vehicle_plate: string | null;
           active: boolean;
           created_at: string;
           resolved_at: string | null;
@@ -364,6 +365,20 @@ export interface Database {
         };
         Relationships: [];
       };
+      wanted_active_view: {
+        Row: {
+          id: string;
+          citizen_id: string;
+          reason: string;
+          vehicle_plate: string | null;
+          created_at: string;
+          first_name: string;
+          last_name: string;
+          dni_number: string;
+          roblox_avatar_url: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       claim_salary: {
@@ -403,7 +418,6 @@ export interface Database {
       police_impound_vehicle: { Args: { p_vehicle_id: string; p_reason: string }; Returns: string };
       police_release_vehicle: { Args: { p_vehicle_id: string }; Returns: undefined };
       police_remove_points: { Args: { p_citizen_id: string; p_points: number; p_reason: string }; Returns: number };
-      police_set_wanted: { Args: { p_citizen_id: string; p_reason: string }; Returns: string };
       police_clear_wanted: { Args: { p_citizen_id: string }; Returns: undefined };
       is_police_authorized: { Args: Record<string, never>; Returns: boolean };
       is_admin: { Args: Record<string, never>; Returns: boolean };
@@ -411,6 +425,11 @@ export interface Database {
       admin_set_police_code: { Args: { p_code: string }; Returns: undefined };
       admin_set_role: { Args: { p_profile_id: string; p_role: AppRole }; Returns: undefined };
       admin_set_job: { Args: { p_profile_id: string; p_job_id: string }; Returns: undefined };
+      police_set_wanted: { Args: { p_citizen_id: string; p_reason: string; p_vehicle_plate?: string | null }; Returns: string };
+      search_citizens_police: {
+        Args: { p_query: string; p_by: string };
+        Returns: Database['public']['Views']['citizen_profile_view']['Row'][];
+      };
       admin_adjust_balance: { Args: { p_profile_id: string; p_amount_cents: number; p_reason: string }; Returns: undefined };
       admin_set_config: { Args: { p_key: string; p_value: Record<string, unknown> }; Returns: undefined };
       check_rate_limit: { Args: { p_key: string; p_max_count: number; p_window_seconds: number }; Returns: boolean };
