@@ -1,8 +1,8 @@
 -- ===================================================================
--- VIGO RP TABLET — Script completo (0001 a 0007) para un proyecto
--- Supabase COMPLETAMENTE NUEVO, en un solo pegado.
--- NO lo uses si ya ejecutaste alguno de los archivos por separado:
--- dará errores de "ya existe". En ese caso usa continuar_0002_a_0007.sql.
+-- VIGO RP TABLET — Script completo (0001 a 0007), IDEMPOTENTE.
+-- Puedes pegarlo y ejecutarlo tantas veces como quieras, sin importar
+-- si ya habías ejecutado antes alguno de los archivos por separado:
+-- nunca dará error de "ya existe".
 -- ===================================================================
 
 -- ---------------------------------------------------------------------
@@ -24,9 +24,12 @@ create extension if not exists "pgcrypto";
 -- ---------------------------------------------------------------------
 -- Roles y perfiles
 -- ---------------------------------------------------------------------
-create type public.app_role as enum ('ciudadano', 'policia', 'admin', 'fundador');
+do $$ begin
+  create type public.app_role as enum ('ciudadano', 'policia', 'admin', 'fundador');
+exception when duplicate_object then null;
+end $$;
 
-create table public.profiles (
+create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   role public.app_role not null default 'ciudadano',
   display_name text,
@@ -34,7 +37,7 @@ create table public.profiles (
   updated_at timestamptz not null default now()
 );
 
-create table public.discord_links (
+create table if not exists public.discord_links (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   discord_user_id text,
   discord_username text,
@@ -45,9 +48,9 @@ create table public.discord_links (
 -- ---------------------------------------------------------------------
 -- DNI / ciudadanos
 -- ---------------------------------------------------------------------
-create sequence public.dni_number_seq start 100000;
+create sequence if not exists public.dni_number_seq start 100000;
 
-create table public.dnis (
+create table if not exists public.dnis (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null unique references public.profiles(id) on delete cascade,
   dni_number text not null unique default ('V-' || lpad(nextval('public.dni_number_seq')::text, 6, '0')),
@@ -63,13 +66,13 @@ create table public.dnis (
   updated_at timestamptz not null default now()
 );
 
-create index dnis_roblox_username_idx on public.dnis (lower(roblox_username));
-create index dnis_name_idx on public.dnis (lower(first_name), lower(last_name));
+create index if not exists dnis_roblox_username_idx on public.dnis (lower(roblox_username));
+create index if not exists dnis_name_idx on public.dnis (lower(first_name), lower(last_name));
 
 -- ---------------------------------------------------------------------
 -- Empleos / rangos (determinan el sueldo)
 -- ---------------------------------------------------------------------
-create table public.jobs (
+create table if not exists public.jobs (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   name text not null,
@@ -81,7 +84,7 @@ create table public.jobs (
 -- ---------------------------------------------------------------------
 -- Banco
 -- ---------------------------------------------------------------------
-create table public.bank_accounts (
+create table if not exists public.bank_accounts (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   balance_cents bigint not null default 0 check (balance_cents >= 0),
   job_id uuid references public.jobs(id) on delete set null,
@@ -91,11 +94,14 @@ create table public.bank_accounts (
   updated_at timestamptz not null default now()
 );
 
-create type public.transaction_type as enum (
-  'salario', 'compra_tienda', 'compra_licencia', 'pago_multa', 'ajuste_admin'
-);
+do $$ begin
+  create type public.transaction_type as enum (
+    'salario', 'compra_tienda', 'compra_licencia', 'pago_multa', 'ajuste_admin'
+  );
+exception when duplicate_object then null;
+end $$;
 
-create table public.bank_transactions (
+create table if not exists public.bank_transactions (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
   type public.transaction_type not null,
@@ -105,12 +111,12 @@ create table public.bank_transactions (
   created_at timestamptz not null default now()
 );
 
-create index bank_transactions_profile_idx on public.bank_transactions (profile_id, created_at desc);
+create index if not exists bank_transactions_profile_idx on public.bank_transactions (profile_id, created_at desc);
 
 -- ---------------------------------------------------------------------
 -- Licencias
 -- ---------------------------------------------------------------------
-create table public.license_types (
+create table if not exists public.license_types (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   name text not null,
@@ -123,7 +129,7 @@ create table public.license_types (
   updated_at timestamptz not null default now()
 );
 
-create table public.licenses (
+create table if not exists public.licenses (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
   license_type_id uuid not null references public.license_types(id) on delete restrict,
@@ -135,7 +141,7 @@ create table public.licenses (
 -- ---------------------------------------------------------------------
 -- Vehículos
 -- ---------------------------------------------------------------------
-create table public.vehicles (
+create table if not exists public.vehicles (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
   plate text not null unique,
@@ -149,13 +155,13 @@ create table public.vehicles (
   updated_at timestamptz not null default now()
 );
 
-create index vehicles_plate_idx on public.vehicles (upper(plate));
-create index vehicles_profile_idx on public.vehicles (profile_id);
+create index if not exists vehicles_plate_idx on public.vehicles (upper(plate));
+create index if not exists vehicles_profile_idx on public.vehicles (profile_id);
 
 -- ---------------------------------------------------------------------
 -- Policía: usuarios autorizados
 -- ---------------------------------------------------------------------
-create table public.police_users (
+create table if not exists public.police_users (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   callsign text not null unique,
   rank text not null default 'Agente',
@@ -167,7 +173,7 @@ create table public.police_users (
 -- ---------------------------------------------------------------------
 -- Acciones policiales (append-only)
 -- ---------------------------------------------------------------------
-create table public.arrests (
+create table if not exists public.arrests (
   id uuid primary key default gen_random_uuid(),
   citizen_id uuid not null references public.profiles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -176,9 +182,12 @@ create table public.arrests (
   created_at timestamptz not null default now()
 );
 
-create type public.fine_status as enum ('pendiente', 'pagada');
+do $$ begin
+  create type public.fine_status as enum ('pendiente', 'pagada');
+exception when duplicate_object then null;
+end $$;
 
-create table public.fines (
+create table if not exists public.fines (
   id uuid primary key default gen_random_uuid(),
   citizen_id uuid not null references public.profiles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -189,9 +198,9 @@ create table public.fines (
   paid_at timestamptz
 );
 
-create index fines_citizen_idx on public.fines (citizen_id, status);
+create index if not exists fines_citizen_idx on public.fines (citizen_id, status);
 
-create table public.confiscations (
+create table if not exists public.confiscations (
   id uuid primary key default gen_random_uuid(),
   citizen_id uuid not null references public.profiles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -201,7 +210,7 @@ create table public.confiscations (
   created_at timestamptz not null default now()
 );
 
-create table public.vehicle_impounds (
+create table if not exists public.vehicle_impounds (
   id uuid primary key default gen_random_uuid(),
   vehicle_id uuid not null references public.vehicles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -211,7 +220,7 @@ create table public.vehicle_impounds (
   released_by uuid references public.profiles(id)
 );
 
-create table public.license_points_history (
+create table if not exists public.license_points_history (
   id uuid primary key default gen_random_uuid(),
   citizen_id uuid not null references public.profiles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -222,7 +231,7 @@ create table public.license_points_history (
   created_at timestamptz not null default now()
 );
 
-create table public.wanted_persons (
+create table if not exists public.wanted_persons (
   id uuid primary key default gen_random_uuid(),
   citizen_id uuid not null references public.profiles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -233,16 +242,16 @@ create table public.wanted_persons (
   resolved_by uuid references public.profiles(id)
 );
 
-create unique index wanted_persons_one_active_idx on public.wanted_persons (citizen_id) where active;
-create index arrests_citizen_idx on public.arrests (citizen_id, created_at desc);
-create index confiscations_citizen_idx on public.confiscations (citizen_id, created_at desc);
-create index vehicle_impounds_vehicle_idx on public.vehicle_impounds (vehicle_id, created_at desc);
-create index points_history_citizen_idx on public.license_points_history (citizen_id, created_at desc);
+create unique index if not exists wanted_persons_one_active_idx on public.wanted_persons (citizen_id) where active;
+create index if not exists arrests_citizen_idx on public.arrests (citizen_id, created_at desc);
+create index if not exists confiscations_citizen_idx on public.confiscations (citizen_id, created_at desc);
+create index if not exists vehicle_impounds_vehicle_idx on public.vehicle_impounds (vehicle_id, created_at desc);
+create index if not exists points_history_citizen_idx on public.license_points_history (citizen_id, created_at desc);
 
 -- ---------------------------------------------------------------------
 -- Radio policial
 -- ---------------------------------------------------------------------
-create table public.radio_messages (
+create table if not exists public.radio_messages (
   id uuid primary key default gen_random_uuid(),
   sender_id uuid not null references public.profiles(id) on delete cascade,
   callsign text not null,
@@ -251,19 +260,19 @@ create table public.radio_messages (
   created_at timestamptz not null default now()
 );
 
-create index radio_messages_channel_idx on public.radio_messages (channel, created_at desc);
+create index if not exists radio_messages_channel_idx on public.radio_messages (channel, created_at desc);
 
 -- ---------------------------------------------------------------------
 -- Configuración general (clave/valor JSON) y auditoría
 -- ---------------------------------------------------------------------
-create table public.app_config (
+create table if not exists public.app_config (
   key text primary key,
   value jsonb not null,
   updated_at timestamptz not null default now(),
   updated_by uuid references public.profiles(id)
 );
 
-create table public.audit_logs (
+create table if not exists public.audit_logs (
   id uuid primary key default gen_random_uuid(),
   actor_id uuid references public.profiles(id) on delete set null,
   actor_label text,
@@ -274,12 +283,12 @@ create table public.audit_logs (
   created_at timestamptz not null default now()
 );
 
-create index audit_logs_created_idx on public.audit_logs (created_at desc);
+create index if not exists audit_logs_created_idx on public.audit_logs (created_at desc);
 
 -- ---------------------------------------------------------------------
 -- Rate limiting (para endpoints sensibles)
 -- ---------------------------------------------------------------------
-create table public.rate_limits (
+create table if not exists public.rate_limits (
   key text primary key,
   count integer not null default 1,
   window_start timestamptz not null default now()
@@ -313,6 +322,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
@@ -348,6 +358,7 @@ begin
 end;
 $$;
 
+drop trigger if exists before_dni_insert on public.dnis;
 create trigger before_dni_insert
   before insert on public.dnis
   for each row execute procedure public.handle_new_dni();
@@ -361,12 +372,19 @@ begin
 end;
 $$;
 
+drop trigger if exists set_updated_at_profiles on public.profiles;
 create trigger set_updated_at_profiles before update on public.profiles for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_dnis on public.dnis;
 create trigger set_updated_at_dnis before update on public.dnis for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_jobs on public.jobs;
 create trigger set_updated_at_jobs before update on public.jobs for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_bank_accounts on public.bank_accounts;
 create trigger set_updated_at_bank_accounts before update on public.bank_accounts for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_license_types on public.license_types;
 create trigger set_updated_at_license_types before update on public.license_types for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_vehicles on public.vehicles;
 create trigger set_updated_at_vehicles before update on public.vehicles for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_police_users on public.police_users;
 create trigger set_updated_at_police_users before update on public.police_users for each row execute procedure public.set_updated_at();
 
 -- ---------------------------------------------------------------------
@@ -645,6 +663,7 @@ create table if not exists public.shop_products (
   updated_at timestamptz not null default now()
 );
 
+drop trigger if exists set_updated_at_shop_products on public.shop_products;
 create trigger set_updated_at_shop_products before update on public.shop_products for each row execute procedure public.set_updated_at();
 
 create table if not exists public.shop_purchases (
@@ -1021,6 +1040,9 @@ select
 -- ejecutarse a través de las funciones SECURITY DEFINER de 0002, que
 -- validan permisos en servidor y se ejecutan como el propietario
 -- (bypassa RLS de forma controlada y auditada).
+--
+-- Nota: cada "create policy" va precedido de un "drop policy if exists"
+-- para que este archivo se pueda volver a ejecutar sin errores.
 -- =====================================================================
 
 alter table public.profiles enable row level security;
@@ -1047,96 +1069,126 @@ alter table public.shop_products enable row level security;
 alter table public.shop_purchases enable row level security;
 
 -- profiles ------------------------------------------------------------
+drop policy if exists profiles_select on public.profiles;
 create policy profiles_select on public.profiles for select
   using (id = auth.uid() or public.is_police_authorized() or public.is_admin());
 
 -- discord_links ---------------------------------------------------------
+drop policy if exists discord_links_select on public.discord_links;
 create policy discord_links_select on public.discord_links for select
   using (profile_id = auth.uid() or public.is_admin());
 
 -- dnis ------------------------------------------------------------------
+drop policy if exists dnis_select on public.dnis;
 create policy dnis_select on public.dnis for select
   using (profile_id = auth.uid() or public.is_police_authorized() or public.is_admin());
 
+drop policy if exists dnis_insert on public.dnis;
 create policy dnis_insert on public.dnis for insert
   with check (profile_id = auth.uid() and not exists (select 1 from public.dnis d2 where d2.profile_id = auth.uid()));
 
 -- jobs (catálogo público de solo lectura, administrable por admin) ------
+drop policy if exists jobs_select on public.jobs;
 create policy jobs_select on public.jobs for select using (true);
+drop policy if exists jobs_admin_write on public.jobs;
 create policy jobs_admin_write on public.jobs for all using (public.is_admin()) with check (public.is_admin());
 
 -- bank_accounts -----------------------------------------------------------
+drop policy if exists bank_accounts_select on public.bank_accounts;
 create policy bank_accounts_select on public.bank_accounts for select
   using (profile_id = auth.uid() or public.is_admin());
+drop policy if exists bank_accounts_admin_write on public.bank_accounts;
 create policy bank_accounts_admin_write on public.bank_accounts for update
   using (public.is_admin()) with check (public.is_admin());
 
 -- bank_transactions ---------------------------------------------------------
+drop policy if exists bank_transactions_select on public.bank_transactions;
 create policy bank_transactions_select on public.bank_transactions for select
   using (profile_id = auth.uid() or public.is_admin());
 
 -- license_types (catálogo) --------------------------------------------------
+drop policy if exists license_types_select on public.license_types;
 create policy license_types_select on public.license_types for select using (true);
+drop policy if exists license_types_admin_write on public.license_types;
 create policy license_types_admin_write on public.license_types for all
   using (public.is_admin()) with check (public.is_admin());
 
 -- licenses --------------------------------------------------------------
+drop policy if exists licenses_select on public.licenses;
 create policy licenses_select on public.licenses for select
   using (profile_id = auth.uid() or public.is_police_authorized() or public.is_admin());
 
 -- shop_products / shop_purchases ----------------------------------------
+drop policy if exists shop_products_select on public.shop_products;
 create policy shop_products_select on public.shop_products for select using (true);
+drop policy if exists shop_products_admin_write on public.shop_products;
 create policy shop_products_admin_write on public.shop_products for all
   using (public.is_admin()) with check (public.is_admin());
+drop policy if exists shop_purchases_select on public.shop_purchases;
 create policy shop_purchases_select on public.shop_purchases for select
   using (profile_id = auth.uid() or public.is_admin());
 
 -- vehicles ----------------------------------------------------------------
+drop policy if exists vehicles_select on public.vehicles;
 create policy vehicles_select on public.vehicles for select
   using (profile_id = auth.uid() or public.is_police_authorized() or public.is_admin());
+drop policy if exists vehicles_admin_write on public.vehicles;
 create policy vehicles_admin_write on public.vehicles for update
   using (public.is_admin()) with check (public.is_admin());
 
 -- police_users --------------------------------------------------------------
+drop policy if exists police_users_select on public.police_users;
 create policy police_users_select on public.police_users for select
   using (profile_id = auth.uid() or public.is_police_authorized() or public.is_admin());
+drop policy if exists police_users_admin_write on public.police_users;
 create policy police_users_admin_write on public.police_users for all
   using (public.is_admin()) with check (public.is_admin());
 
 -- arrests / fines / confiscations / points / wanted --------------------------
+drop policy if exists arrests_select on public.arrests;
 create policy arrests_select on public.arrests for select
   using (citizen_id = auth.uid() or public.is_police_authorized() or public.is_admin());
 
+drop policy if exists fines_select on public.fines;
 create policy fines_select on public.fines for select
   using (citizen_id = auth.uid() or public.is_police_authorized() or public.is_admin());
 
+drop policy if exists confiscations_select on public.confiscations;
 create policy confiscations_select on public.confiscations for select
   using (citizen_id = auth.uid() or public.is_police_authorized() or public.is_admin());
 
+drop policy if exists vehicle_impounds_select on public.vehicle_impounds;
 create policy vehicle_impounds_select on public.vehicle_impounds for select
   using (
     public.is_police_authorized() or public.is_admin()
     or exists (select 1 from public.vehicles v where v.id = vehicle_impounds.vehicle_id and v.profile_id = auth.uid())
   );
 
+drop policy if exists points_history_select on public.license_points_history;
 create policy points_history_select on public.license_points_history for select
   using (citizen_id = auth.uid() or public.is_police_authorized() or public.is_admin());
 
+drop policy if exists wanted_persons_select on public.wanted_persons;
 create policy wanted_persons_select on public.wanted_persons for select
   using (citizen_id = auth.uid() or public.is_police_authorized() or public.is_admin());
 
 -- radio_messages ------------------------------------------------------------
+drop policy if exists radio_messages_select on public.radio_messages;
 create policy radio_messages_select on public.radio_messages for select
   using (public.is_police_authorized() or public.is_admin());
+drop policy if exists radio_messages_insert on public.radio_messages;
 create policy radio_messages_insert on public.radio_messages for insert
   with check (sender_id = auth.uid() and (public.is_police_authorized() or public.is_admin()));
 
 -- app_config ------------------------------------------------------------------
+drop policy if exists app_config_admin_only on public.app_config;
 create policy app_config_admin_only on public.app_config for select using (public.is_admin());
+drop policy if exists app_config_admin_write on public.app_config;
 create policy app_config_admin_write on public.app_config for all
   using (public.is_admin()) with check (public.is_admin());
 
 -- audit_logs --------------------------------------------------------------------
+drop policy if exists audit_logs_admin_select on public.audit_logs;
 create policy audit_logs_admin_select on public.audit_logs for select using (public.is_admin());
 -- Sin policies de insert/update/delete para clientes: solo write_audit_log() (definer) puede escribir,
 -- y nadie puede editar/borrar jamás, ni siquiera un admin desde la API.
@@ -1181,9 +1233,16 @@ on conflict (code) do nothing;
 -- Archivo: supabase/migrations/0006_realtime.sql
 -- ---------------------------------------------------------------------
 -- Habilita Supabase Realtime (Postgres Changes) para la radio policial.
+-- Comprueba primero si la tabla ya es miembro de la publicación para que
+-- este archivo se pueda volver a ejecutar sin errores.
 do $$
 begin
-  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+       where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'radio_messages'
+     )
+  then
     alter publication supabase_realtime add table public.radio_messages;
   end if;
 end $$;
@@ -1198,6 +1257,7 @@ end $$;
 -- Permite a un admin cambiar el rol de un perfil (p.ej. revocar acceso
 -- policial o nombrar a otro admin). No se expone ninguna otra columna
 -- de "profiles" a escritura por RLS.
+drop policy if exists profiles_admin_write on public.profiles;
 create policy profiles_admin_write on public.profiles for update
   using (public.is_admin()) with check (public.is_admin());
 

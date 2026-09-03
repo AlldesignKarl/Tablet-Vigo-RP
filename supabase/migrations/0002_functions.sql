@@ -271,6 +271,7 @@ create table if not exists public.shop_products (
   updated_at timestamptz not null default now()
 );
 
+drop trigger if exists set_updated_at_shop_products on public.shop_products;
 create trigger set_updated_at_shop_products before update on public.shop_products for each row execute procedure public.set_updated_at();
 
 create table if not exists public.shop_purchases (

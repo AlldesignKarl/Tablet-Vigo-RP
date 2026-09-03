@@ -5,6 +5,7 @@
 -- Permite a un admin cambiar el rol de un perfil (p.ej. revocar acceso
 -- policial o nombrar a otro admin). No se expone ninguna otra columna
 -- de "profiles" a escritura por RLS.
+drop policy if exists profiles_admin_write on public.profiles;
 create policy profiles_admin_write on public.profiles for update
   using (public.is_admin()) with check (public.is_admin());
 

@@ -14,9 +14,12 @@ create extension if not exists "pgcrypto";
 -- ---------------------------------------------------------------------
 -- Roles y perfiles
 -- ---------------------------------------------------------------------
-create type public.app_role as enum ('ciudadano', 'policia', 'admin', 'fundador');
+do $$ begin
+  create type public.app_role as enum ('ciudadano', 'policia', 'admin', 'fundador');
+exception when duplicate_object then null;
+end $$;
 
-create table public.profiles (
+create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   role public.app_role not null default 'ciudadano',
   display_name text,
@@ -24,7 +27,7 @@ create table public.profiles (
   updated_at timestamptz not null default now()
 );
 
-create table public.discord_links (
+create table if not exists public.discord_links (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   discord_user_id text,
   discord_username text,
@@ -35,9 +38,9 @@ create table public.discord_links (
 -- ---------------------------------------------------------------------
 -- DNI / ciudadanos
 -- ---------------------------------------------------------------------
-create sequence public.dni_number_seq start 100000;
+create sequence if not exists public.dni_number_seq start 100000;
 
-create table public.dnis (
+create table if not exists public.dnis (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null unique references public.profiles(id) on delete cascade,
   dni_number text not null unique default ('V-' || lpad(nextval('public.dni_number_seq')::text, 6, '0')),
@@ -53,13 +56,13 @@ create table public.dnis (
   updated_at timestamptz not null default now()
 );
 
-create index dnis_roblox_username_idx on public.dnis (lower(roblox_username));
-create index dnis_name_idx on public.dnis (lower(first_name), lower(last_name));
+create index if not exists dnis_roblox_username_idx on public.dnis (lower(roblox_username));
+create index if not exists dnis_name_idx on public.dnis (lower(first_name), lower(last_name));
 
 -- ---------------------------------------------------------------------
 -- Empleos / rangos (determinan el sueldo)
 -- ---------------------------------------------------------------------
-create table public.jobs (
+create table if not exists public.jobs (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   name text not null,
@@ -71,7 +74,7 @@ create table public.jobs (
 -- ---------------------------------------------------------------------
 -- Banco
 -- ---------------------------------------------------------------------
-create table public.bank_accounts (
+create table if not exists public.bank_accounts (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   balance_cents bigint not null default 0 check (balance_cents >= 0),
   job_id uuid references public.jobs(id) on delete set null,
@@ -81,11 +84,14 @@ create table public.bank_accounts (
   updated_at timestamptz not null default now()
 );
 
-create type public.transaction_type as enum (
-  'salario', 'compra_tienda', 'compra_licencia', 'pago_multa', 'ajuste_admin'
-);
+do $$ begin
+  create type public.transaction_type as enum (
+    'salario', 'compra_tienda', 'compra_licencia', 'pago_multa', 'ajuste_admin'
+  );
+exception when duplicate_object then null;
+end $$;
 
-create table public.bank_transactions (
+create table if not exists public.bank_transactions (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
   type public.transaction_type not null,
@@ -95,12 +101,12 @@ create table public.bank_transactions (
   created_at timestamptz not null default now()
 );
 
-create index bank_transactions_profile_idx on public.bank_transactions (profile_id, created_at desc);
+create index if not exists bank_transactions_profile_idx on public.bank_transactions (profile_id, created_at desc);
 
 -- ---------------------------------------------------------------------
 -- Licencias
 -- ---------------------------------------------------------------------
-create table public.license_types (
+create table if not exists public.license_types (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   name text not null,
@@ -113,7 +119,7 @@ create table public.license_types (
   updated_at timestamptz not null default now()
 );
 
-create table public.licenses (
+create table if not exists public.licenses (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
   license_type_id uuid not null references public.license_types(id) on delete restrict,
@@ -125,7 +131,7 @@ create table public.licenses (
 -- ---------------------------------------------------------------------
 -- Vehículos
 -- ---------------------------------------------------------------------
-create table public.vehicles (
+create table if not exists public.vehicles (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
   plate text not null unique,
@@ -139,13 +145,13 @@ create table public.vehicles (
   updated_at timestamptz not null default now()
 );
 
-create index vehicles_plate_idx on public.vehicles (upper(plate));
-create index vehicles_profile_idx on public.vehicles (profile_id);
+create index if not exists vehicles_plate_idx on public.vehicles (upper(plate));
+create index if not exists vehicles_profile_idx on public.vehicles (profile_id);
 
 -- ---------------------------------------------------------------------
 -- Policía: usuarios autorizados
 -- ---------------------------------------------------------------------
-create table public.police_users (
+create table if not exists public.police_users (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   callsign text not null unique,
   rank text not null default 'Agente',
@@ -157,7 +163,7 @@ create table public.police_users (
 -- ---------------------------------------------------------------------
 -- Acciones policiales (append-only)
 -- ---------------------------------------------------------------------
-create table public.arrests (
+create table if not exists public.arrests (
   id uuid primary key default gen_random_uuid(),
   citizen_id uuid not null references public.profiles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -166,9 +172,12 @@ create table public.arrests (
   created_at timestamptz not null default now()
 );
 
-create type public.fine_status as enum ('pendiente', 'pagada');
+do $$ begin
+  create type public.fine_status as enum ('pendiente', 'pagada');
+exception when duplicate_object then null;
+end $$;
 
-create table public.fines (
+create table if not exists public.fines (
   id uuid primary key default gen_random_uuid(),
   citizen_id uuid not null references public.profiles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -179,9 +188,9 @@ create table public.fines (
   paid_at timestamptz
 );
 
-create index fines_citizen_idx on public.fines (citizen_id, status);
+create index if not exists fines_citizen_idx on public.fines (citizen_id, status);
 
-create table public.confiscations (
+create table if not exists public.confiscations (
   id uuid primary key default gen_random_uuid(),
   citizen_id uuid not null references public.profiles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -191,7 +200,7 @@ create table public.confiscations (
   created_at timestamptz not null default now()
 );
 
-create table public.vehicle_impounds (
+create table if not exists public.vehicle_impounds (
   id uuid primary key default gen_random_uuid(),
   vehicle_id uuid not null references public.vehicles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -201,7 +210,7 @@ create table public.vehicle_impounds (
   released_by uuid references public.profiles(id)
 );
 
-create table public.license_points_history (
+create table if not exists public.license_points_history (
   id uuid primary key default gen_random_uuid(),
   citizen_id uuid not null references public.profiles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -212,7 +221,7 @@ create table public.license_points_history (
   created_at timestamptz not null default now()
 );
 
-create table public.wanted_persons (
+create table if not exists public.wanted_persons (
   id uuid primary key default gen_random_uuid(),
   citizen_id uuid not null references public.profiles(id) on delete cascade,
   officer_id uuid not null references public.profiles(id) on delete restrict,
@@ -223,16 +232,16 @@ create table public.wanted_persons (
   resolved_by uuid references public.profiles(id)
 );
 
-create unique index wanted_persons_one_active_idx on public.wanted_persons (citizen_id) where active;
-create index arrests_citizen_idx on public.arrests (citizen_id, created_at desc);
-create index confiscations_citizen_idx on public.confiscations (citizen_id, created_at desc);
-create index vehicle_impounds_vehicle_idx on public.vehicle_impounds (vehicle_id, created_at desc);
-create index points_history_citizen_idx on public.license_points_history (citizen_id, created_at desc);
+create unique index if not exists wanted_persons_one_active_idx on public.wanted_persons (citizen_id) where active;
+create index if not exists arrests_citizen_idx on public.arrests (citizen_id, created_at desc);
+create index if not exists confiscations_citizen_idx on public.confiscations (citizen_id, created_at desc);
+create index if not exists vehicle_impounds_vehicle_idx on public.vehicle_impounds (vehicle_id, created_at desc);
+create index if not exists points_history_citizen_idx on public.license_points_history (citizen_id, created_at desc);
 
 -- ---------------------------------------------------------------------
 -- Radio policial
 -- ---------------------------------------------------------------------
-create table public.radio_messages (
+create table if not exists public.radio_messages (
   id uuid primary key default gen_random_uuid(),
   sender_id uuid not null references public.profiles(id) on delete cascade,
   callsign text not null,
@@ -241,19 +250,19 @@ create table public.radio_messages (
   created_at timestamptz not null default now()
 );
 
-create index radio_messages_channel_idx on public.radio_messages (channel, created_at desc);
+create index if not exists radio_messages_channel_idx on public.radio_messages (channel, created_at desc);
 
 -- ---------------------------------------------------------------------
 -- Configuración general (clave/valor JSON) y auditoría
 -- ---------------------------------------------------------------------
-create table public.app_config (
+create table if not exists public.app_config (
   key text primary key,
   value jsonb not null,
   updated_at timestamptz not null default now(),
   updated_by uuid references public.profiles(id)
 );
 
-create table public.audit_logs (
+create table if not exists public.audit_logs (
   id uuid primary key default gen_random_uuid(),
   actor_id uuid references public.profiles(id) on delete set null,
   actor_label text,
@@ -264,12 +273,12 @@ create table public.audit_logs (
   created_at timestamptz not null default now()
 );
 
-create index audit_logs_created_idx on public.audit_logs (created_at desc);
+create index if not exists audit_logs_created_idx on public.audit_logs (created_at desc);
 
 -- ---------------------------------------------------------------------
 -- Rate limiting (para endpoints sensibles)
 -- ---------------------------------------------------------------------
-create table public.rate_limits (
+create table if not exists public.rate_limits (
   key text primary key,
   count integer not null default 1,
   window_start timestamptz not null default now()
@@ -303,6 +312,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
@@ -338,6 +348,7 @@ begin
 end;
 $$;
 
+drop trigger if exists before_dni_insert on public.dnis;
 create trigger before_dni_insert
   before insert on public.dnis
   for each row execute procedure public.handle_new_dni();
@@ -351,10 +362,17 @@ begin
 end;
 $$;
 
+drop trigger if exists set_updated_at_profiles on public.profiles;
 create trigger set_updated_at_profiles before update on public.profiles for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_dnis on public.dnis;
 create trigger set_updated_at_dnis before update on public.dnis for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_jobs on public.jobs;
 create trigger set_updated_at_jobs before update on public.jobs for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_bank_accounts on public.bank_accounts;
 create trigger set_updated_at_bank_accounts before update on public.bank_accounts for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_license_types on public.license_types;
 create trigger set_updated_at_license_types before update on public.license_types for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_vehicles on public.vehicles;
 create trigger set_updated_at_vehicles before update on public.vehicles for each row execute procedure public.set_updated_at();
+drop trigger if exists set_updated_at_police_users on public.police_users;
 create trigger set_updated_at_police_users before update on public.police_users for each row execute procedure public.set_updated_at();
