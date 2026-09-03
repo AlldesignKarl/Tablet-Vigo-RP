@@ -14,29 +14,49 @@ export default function WantedOverlay({ profileId, initialWanted }: { profileId:
   const [wanted, setWanted] = useState(initialWanted);
 
   useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`wanted-${profileId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'wanted_persons', filter: `citizen_id=eq.${profileId}` },
-        (payload) => {
-          const row = payload.new as { active: boolean };
-          if (row.active) setWanted(true);
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'wanted_persons', filter: `citizen_id=eq.${profileId}` },
-        (payload) => {
-          const row = payload.new as { active: boolean };
-          setWanted(row.active);
-        },
-      )
-      .subscribe();
+    if (!profileId) return;
+    let supabase: ReturnType<typeof createClient>;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    try {
+      supabase = createClient();
+      channel = supabase
+        .channel(`wanted-${profileId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'wanted_persons', filter: `citizen_id=eq.${profileId}` },
+          (payload) => {
+            try {
+              const row = payload.new as { active: boolean };
+              if (row.active) setWanted(true);
+            } catch (err) {
+              console.error('[wanted-overlay] fallo procesando INSERT', err);
+            }
+          },
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'wanted_persons', filter: `citizen_id=eq.${profileId}` },
+          (payload) => {
+            try {
+              const row = payload.new as { active: boolean };
+              setWanted(Boolean(row.active));
+            } catch (err) {
+              console.error('[wanted-overlay] fallo procesando UPDATE', err);
+            }
+          },
+        )
+        .subscribe();
+    } catch (err) {
+      console.error('[wanted-overlay] no se pudo activar el aviso en vivo (no afecta al resto de la tablet)', err);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      try {
+        if (channel) supabase.removeChannel(channel);
+      } catch {
+        // Ignorar: la tablet no debe romperse por un fallo al desconectar.
+      }
     };
   }, [profileId]);
 
