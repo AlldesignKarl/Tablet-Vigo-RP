@@ -62,15 +62,6 @@ export default function TabletShell({
                   <div className="flex h-full w-full items-center justify-center text-sm">👤</div>
                 )}
               </div>
-              <form action="/api/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition hover:bg-white/5 hover:text-white"
-                  title="Cerrar sesión"
-                >
-                  Salir
-                </button>
-              </form>
             </div>
           </header>
 

@@ -5,16 +5,25 @@ policial/administrativa del servidor de Roblox ERLC **Spanish Vigo
 Roleplay**. Incluye DNI con avatar de Roblox, banco con sueldos
 automáticos cada 48h, tienda y licencias, registro de vehículos, panel
 policial con acciones reales (arrestos, multas, incautaciones, puntos,
-busca y captura), radio en tiempo real, integración con Discord, panel de
+busca y captura), radio en tiempo real, logs a Discord vía webhook, panel de
 administración y auditoría completa.
 
 ## Tecnologías
 
 - **Frontend/Backend**: Next.js 14 (App Router) + TypeScript + Route Handlers
 - **Estilos**: Tailwind CSS
-- **Base de datos y Auth**: Supabase (PostgreSQL + Supabase Auth con Discord OAuth + Realtime)
+- **Base de datos y Auth**: Supabase (PostgreSQL + Supabase Auth con sesiones anónimas + Realtime)
 - **Validación**: Zod
 - **Hosting recomendado**: Vercel (plan gratuito)
+
+No hay login con Discord ni con ningún proveedor externo: al pulsar
+"Entrar en la tablet" se crea una sesión anónima de Supabase ligada a ese
+navegador, y a partir de ahí se pide crear el DNI. Volver a abrir la
+tablet desde el mismo navegador recupera automáticamente el DNI y todos
+los datos asociados. Si el ciudadano borra los datos del sitio o cambia
+de navegador/dispositivo, no hay forma de recuperar ese personaje (no
+hay cuenta ni contraseña de por medio) — es la contrapartida de no pedir
+ningún registro.
 
 Toda la lógica sensible (dinero, acciones policiales, permisos) vive en
 **funciones de PostgreSQL `SECURITY DEFINER`** (ver `supabase/migrations`),
@@ -30,7 +39,7 @@ src/
     api/                 Endpoints REST (roblox, dni, banco, tienda, vehículos, policía, admin, cron)
     tablet/              Tablet del ciudadano (DNI, banco, vehículos, tienda, historial, policía)
     admin/               Panel de administración
-    login/, onboarding/, auth/callback/
+    login/, onboarding/
   components/          Componentes de React organizados por dominio
     dni/, bank/, shop/, vehicles/, police/, admin/, tablet/, boot/, ui/
   lib/                 Lógica compartida de servidor/cliente
@@ -47,12 +56,16 @@ supabase/migrations/   Migraciones SQL (esquema, funciones, RLS, seeds)
 ## 1. Configura Supabase
 
 1. Crea un proyecto en [supabase.com](https://supabase.com) (plan gratuito).
-2. Ve a **SQL Editor** y ejecuta, en este orden, cada archivo de
-   `supabase/migrations/` (o usa la CLI de Supabase, ver más abajo).
-3. Ve a **Authentication → Providers → Discord** y actívalo (ver paso 2).
-4. Ve a **Authentication → URL Configuration** y añade como *Redirect URL*:
-   - `http://localhost:3000/auth/callback` (desarrollo)
-   - `https://TU-DOMINIO.vercel.app/auth/callback` (producción)
+2. Ve a **SQL Editor** y ejecuta `supabase/completo_desde_cero.sql` (o cada
+   archivo de `supabase/migrations/` por separado, o usa la CLI de Supabase,
+   ver más abajo). Es idempotente: se puede volver a ejecutar sin errores.
+3. Ve a **Authentication → Sign In / Providers** y activa **"Allow anonymous
+   sign-ins"** (a veces aparece en Authentication → Settings, según la
+   versión del panel). Es imprescindible: sin esto, el botón "Entrar en la
+   tablet" fallará.
+4. Ve a **Authentication → URL Configuration** y en **Site URL** / **Redirect
+   URLs** añade tanto `http://localhost:3000` (desarrollo) como tu dominio
+   real de producción, p. ej. `https://TU-DOMINIO.vercel.app`.
 5. Ve a **Database → Replication** y confirma que `radio_messages` está
    añadida a la publicación `supabase_realtime` (la migración
    `0006_realtime.sql` ya lo hace automáticamente si la publicación existe).
@@ -66,16 +79,7 @@ supabase link --project-ref TU-PROJECT-REF
 supabase db push   # aplica todas las migraciones de supabase/migrations
 ```
 
-## 2. Configura Discord OAuth
-
-1. Crea una aplicación en [discord.com/developers/applications](https://discord.com/developers/applications).
-2. En **OAuth2**, añade como *Redirect URI* la URL de callback que te da
-   Supabase: `https://TU-PROYECTO.supabase.co/auth/v1/callback`.
-3. Copia el **Client ID** y **Client Secret**.
-4. En Supabase → **Authentication → Providers → Discord**, pega ambos
-   valores y guarda.
-
-### Webhooks de Discord (logs)
+## 2. Logs a Discord (opcional)
 
 No necesitas un bot para los logs de eventos: basta con crear **Webhooks**
 en los canales de tu servidor de Discord (Configuración del canal →
@@ -113,9 +117,9 @@ npm install
 npm run dev
 ```
 
-Abre `http://localhost:3000`. Al iniciar sesión con Discord por primera
-vez se te pedirá crear tu DNI; a partir de ahí toda tu información
-persiste en Supabase.
+Abre `http://localhost:3000`, pulsa "Entrar en la tablet" y crea tu DNI la
+primera vez; a partir de ahí toda tu información persiste en Supabase
+ligada a la sesión anónima de ese navegador.
 
 **Código policial inicial**: `1212` (cámbialo cuanto antes desde
 `/admin/policia`, se guarda como hash seguro, nunca en texto plano).
@@ -176,7 +180,11 @@ Recuerda añadir la URL de producción como *Redirect URL* en Supabase Auth
 - **Auditoría inmutable**: `audit_logs` no tiene policies de
   `UPDATE`/`DELETE` para nadie, ni siquiera administradores.
 - **Roblox/Discord**: toda llamada a APIs externas y todo token/secreto
-  vive exclusivamente en el servidor.
+  (incluidas las URLs de los webhooks de Discord) vive exclusivamente en
+  el servidor.
+- **Sin login externo**: el acceso usa sesiones anónimas de Supabase
+  ligadas al navegador; no hay contraseñas ni tokens de terceros que
+  puedan filtrarse en el flujo de entrada.
 
 ## Pruebas realizadas
 
@@ -222,8 +230,9 @@ Este entorno de desarrollo no tiene acceso a Internet hacia Supabase,
 Discord ni Vercel, así que **no se ha desplegado nada automáticamente**.
 Para dejarlo funcionando de verdad necesitas:
 
-1. Crear el proyecto de Supabase y aplicar las migraciones (paso 1).
-2. Crear la aplicación de Discord OAuth y activarla en Supabase (paso 2).
+1. Crear el proyecto de Supabase, aplicar las migraciones y activar
+   "Allow anonymous sign-ins" (paso 1).
+2. Crear los webhooks de Discord si quieres logs de eventos (paso 2, opcional).
 3. Rellenar `.env.local` (o las variables de entorno de Vercel) con las
    claves reales (paso 4).
 4. Ejecutar `npm install && npm run build` para confirmar que compila con

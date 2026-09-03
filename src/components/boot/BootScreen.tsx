@@ -44,7 +44,7 @@ export default function BootScreen() {
             href="/login"
             className="rounded-xl border border-accent-500/50 bg-accent-500/15 px-8 py-3 text-sm font-semibold tracking-wide text-accent-400 transition hover:bg-accent-500/25"
           >
-            INICIAR SESIÓN
+            ENTRAR
           </Link>
         </div>
       </div>
