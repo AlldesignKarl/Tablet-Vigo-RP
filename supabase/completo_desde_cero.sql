@@ -1214,8 +1214,10 @@ insert into public.app_config (key, value) values
   ))
 on conflict (key) do nothing;
 
+-- Todos los ciudadanos empiezan con el empleo "desempleado", que paga un
+-- sueldo base de 750€ cada 48h (configurable después desde /admin/empleos).
 insert into public.jobs (code, name, salary_cents) values
-  ('desempleado', 'Desempleado', 0),
+  ('desempleado', 'Desempleado', 75000),
   ('taxista', 'Taxista', 15000),
   ('mecanico', 'Mecánico', 20000),
   ('sanitario', 'Sanitario', 25000),

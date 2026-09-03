@@ -9,7 +9,6 @@ export default async function TabletHomePage() {
     data: { user },
   } = await supabase.auth.getUser();
   const profile = user ? await getCitizenProfile(supabase, user.id) : null;
-  const { data: isPolice } = await supabase.rpc('is_police_authorized');
 
   return (
     <div className="space-y-6">
@@ -42,15 +41,13 @@ export default async function TabletHomePage() {
         <DashboardCard href="/tablet/vehiculos" icon="🚗" title="Vehículos" description="Registra y consulta tus vehículos." />
         <DashboardCard href="/tablet/tienda" icon="🛒" title="Tienda y licencias" description="Compra licencias oficiales." />
         <DashboardCard href="/tablet/historial" icon="⚖️" title="Historial" description="Arrestos, multas e incautaciones." />
-        {isPolice && (
-          <DashboardCard
-            href="/tablet/policia"
-            icon="👮"
-            title="Cuenta de policía"
-            description="Buscador, radio y acciones policiales."
-            accent
-          />
-        )}
+        <DashboardCard
+          href="/tablet/policia"
+          icon="👮"
+          title="Cuenta de policía"
+          description="Introduce el código de acceso para entrar."
+          accent
+        />
       </div>
     </div>
   );

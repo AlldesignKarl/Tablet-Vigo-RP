@@ -79,3 +79,21 @@ body {
 .flip-face-back {
   transform: rotateY(180deg);
 }
+
+/* Brillo azul al pasar el ratón por cualquier botón o enlace clicable de
+   la tablet, para dar una sensación consistente de "interfaz táctil". */
+button:not(:disabled):not(.no-glow),
+a[href]:not(.no-glow) {
+  transition: box-shadow 150ms ease, filter 150ms ease;
+}
+
+button:not(:disabled):not(.no-glow):hover,
+a[href]:not(.no-glow):hover {
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.65), 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+button:not(:disabled):not(.no-glow):focus-visible,
+a[href]:not(.no-glow):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
+}

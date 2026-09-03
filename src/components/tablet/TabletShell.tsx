@@ -14,18 +14,20 @@ interface NavItem {
 export default function TabletShell({
   citizenName,
   avatarUrl,
-  isPolice,
   isAdmin,
   children,
 }: {
   citizenName: string;
   avatarUrl: string | null;
-  isPolice: boolean;
   isAdmin: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
 
+  // El botón de Policía siempre está visible para cualquier ciudadano con
+  // DNI: la propia sección /tablet/policia es la que pide el código de
+  // acceso y comprueba los permisos en el servidor. Ocultar el botón NO
+  // es una medida de seguridad real, así que no lo usamos como tal.
   const navItems: NavItem[] = [
     { href: '/tablet', label: 'Inicio', icon: '🏠', show: true },
     { href: '/tablet/dni', label: 'DNI', icon: '🪪', show: true },
@@ -33,7 +35,7 @@ export default function TabletShell({
     { href: '/tablet/vehiculos', label: 'Vehículos', icon: '🚗', show: true },
     { href: '/tablet/tienda', label: 'Tienda', icon: '🛒', show: true },
     { href: '/tablet/historial', label: 'Historial', icon: '⚖️', show: true },
-    { href: '/tablet/policia', label: 'Policía', icon: '👮', show: isPolice },
+    { href: '/tablet/policia', label: 'Policía', icon: '👮', show: true },
     { href: '/admin', label: 'Admin', icon: '⚙️', show: isAdmin },
   ];
 
