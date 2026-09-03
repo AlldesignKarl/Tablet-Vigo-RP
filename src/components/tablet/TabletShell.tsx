@@ -21,7 +21,6 @@ import {
   RotateCw,
   type LucideIcon,
 } from 'lucide-react';
-import WantedOverlay from './WantedOverlay';
 
 interface NavItem {
   href: string;
@@ -45,16 +44,12 @@ export default function TabletShell({
   dniNumber,
   avatarUrl,
   isAdmin,
-  profileId,
-  isWanted,
   children,
 }: {
   citizenName: string;
   dniNumber: string;
   avatarUrl: string | null;
   isAdmin: boolean;
-  profileId: string;
-  isWanted: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -91,7 +86,6 @@ export default function TabletShell({
 
   return (
     <div className="grid-overlay min-h-dvh bg-base-950">
-      <WantedOverlay profileId={profileId} initialWanted={isWanted} />
       <div className="mx-auto flex min-h-dvh max-w-7xl flex-col p-2 sm:p-4">
         <div className="hud-panel scan-overlay flex flex-1 flex-col overflow-hidden border-2 border-white/10 sm:rounded-[1.75rem]">
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-accent-500/[0.06] via-transparent to-transparent px-4 py-3 sm:px-6">
