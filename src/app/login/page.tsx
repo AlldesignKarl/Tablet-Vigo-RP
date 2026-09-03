@@ -4,6 +4,13 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), ms)),
+  ]);
+}
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -13,26 +20,41 @@ function LoginContent() {
   async function enter() {
     setLoading(true);
     setError(null);
-    const supabase = createClient();
 
-    // Si este navegador ya tenía una sesión (anónima o no), la reutilizamos
-    // tal cual en vez de crear una nueva y perder el DNI ya existente.
-    const {
-      data: { user: existingUser },
-    } = await supabase.auth.getUser();
+    try {
+      const supabase = createClient();
 
-    if (!existingUser) {
-      const { error: signInError } = await supabase.auth.signInAnonymously();
+      // Al llegar aquí nunca hay ya una sesión válida: la página de inicio
+      // y el middleware solo mandan a /login cuando no la hay. Creamos una
+      // sesión anónima directamente, sin llamadas previas innecesarias.
+      const { error: signInError } = await withTimeout(supabase.auth.signInAnonymously(), 10000);
+
       if (signInError) {
-        setError(signInError.message);
+        console.error('[login] signInAnonymously error', signInError);
+        if (signInError.message.toLowerCase().includes('anonymous')) {
+          setError(
+            'El acceso está mal configurado: hay que activar "Allow anonymous sign-ins" en Supabase (Authentication → Sign In / Providers).',
+          );
+        } else {
+          setError(signInError.message);
+        }
         setLoading(false);
         return;
       }
-    }
 
-    const next = searchParams.get('next') ?? '/';
-    router.push(next);
-    router.refresh();
+      const next = searchParams.get('next') ?? '/';
+      router.push(next);
+      router.refresh();
+    } catch (err) {
+      console.error('[login] unexpected error', err);
+      const timedOut = err instanceof Error && err.message === 'TIMEOUT';
+      setError(
+        timedOut
+          ? 'El servidor de Supabase no responde. Comprueba que el proyecto esté activo e inténtalo de nuevo.'
+          : 'No se pudo conectar. Comprueba tu conexión a internet e inténtalo de nuevo.',
+      );
+      setLoading(false);
+    }
   }
 
   return (
