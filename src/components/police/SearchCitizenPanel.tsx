@@ -12,12 +12,14 @@ export default function SearchCitizenPanel() {
   const [results, setResults] = useState<CitizenProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (query.trim().length < 2) return;
     setLoading(true);
     setSearched(true);
+    setError(null);
     try {
       const res = await fetch('/api/police/search-citizen', {
         method: 'POST',
@@ -25,7 +27,15 @@ export default function SearchCitizenPanel() {
         body: JSON.stringify({ query, by }),
       });
       const json = await res.json();
-      setResults(res.ok && json.ok ? json.data : []);
+      if (!res.ok || !json.ok) {
+        setError(json.error || 'Error desconocido.');
+        setResults([]);
+        return;
+      }
+      setResults(json.data ?? []);
+    } catch {
+      setError('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.');
+      setResults([]);
     } finally {
       setLoading(false);
     }
@@ -65,7 +75,13 @@ export default function SearchCitizenPanel() {
         </button>
       </form>
 
-      {searched && !loading && results.length === 0 && (
+      {error && (
+        <p className="rounded-lg border border-danger-500/40 bg-danger-500/10 px-3 py-2 text-sm text-danger-500">
+          Error: {error}
+        </p>
+      )}
+
+      {searched && !loading && !error && results.length === 0 && (
         <p className="text-sm text-slate-500">No se han encontrado resultados.</p>
       )}
 

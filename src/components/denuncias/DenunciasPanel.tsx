@@ -30,6 +30,7 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [accused, setAccused] = useState<SearchResult | null>(null);
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -42,6 +43,7 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
     }
     setSearching(true);
     setSearched(true);
+    setSearchError(null);
     try {
       const res = await fetch('/api/denuncias/search-citizen', {
         method: 'POST',
@@ -50,13 +52,17 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        push({ kind: 'error', title: 'No se pudo buscar', message: json.error });
+        const message = json.error || 'Error desconocido.';
+        push({ kind: 'error', title: 'No se pudo buscar', message });
+        setSearchError(message);
         setResults([]);
         return;
       }
       setResults(json.data ?? []);
     } catch {
-      push({ kind: 'error', title: 'No se pudo conectar con el servidor', message: 'Revisa tu conexión e inténtalo de nuevo.' });
+      const message = 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
+      push({ kind: 'error', title: 'No se pudo conectar con el servidor', message });
+      setSearchError(message);
       setResults([]);
     } finally {
       setSearching(false);
@@ -144,6 +150,12 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
               </button>
             </form>
 
+            {searchError && (
+              <p className="rounded-lg border border-danger-500/40 bg-danger-500/10 px-3 py-2 text-xs text-danger-500">
+                Error: {searchError}
+              </p>
+            )}
+
             {results.length > 0 ? (
               <div className="space-y-1.5">
                 {results.map((r) => (
@@ -164,7 +176,8 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
               </div>
             ) : (
               searched &&
-              !searching && <p className="text-sm text-slate-500">No se ha encontrado a nadie con esos datos.</p>
+              !searching &&
+              !searchError && <p className="text-sm text-slate-500">No se ha encontrado a nadie con esos datos.</p>
             )}
           </>
         ) : (
