@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Search, Car, Radio, FileWarning, Siren, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Search, Car, FileWarning, Siren, type LucideIcon } from 'lucide-react';
 
 const ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/tablet/policia', label: 'Panel', icon: LayoutDashboard },
@@ -10,7 +10,6 @@ const ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/tablet/policia/buscar-matricula', label: 'Buscar matrícula', icon: Car },
   { href: '/tablet/policia/busca-y-captura', label: 'Busca y captura', icon: Siren },
   { href: '/tablet/policia/denuncias', label: 'Denuncias', icon: FileWarning },
-  { href: '/tablet/policia/radio', label: 'Radio', icon: Radio },
 ];
 
 export default function PoliceSubNav({ callsign, rank }: { callsign?: string; rank?: string }) {

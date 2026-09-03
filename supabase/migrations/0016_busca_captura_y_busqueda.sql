@@ -140,3 +140,43 @@ from public.wanted_persons wp
 join public.dnis d on d.profile_id = wp.citizen_id
 where wp.active = true
 order by wp.created_at desc;
+
+-- =====================================================================
+-- 3) Un ciudadano puede eliminar su propio vehículo (p.ej. si ya no lo
+--    usa). No se puede borrar uno incautado: primero tiene que liberarlo
+--    un agente.
+-- =====================================================================
+create or replace function public.delete_vehicle(p_vehicle_id uuid)
+returns table (success boolean, message text)
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_owner uuid;
+  v_impounded boolean;
+begin
+  if v_uid is null then
+    raise exception 'No autenticado';
+  end if;
+
+  select profile_id, impounded into v_owner, v_impounded from public.vehicles where id = p_vehicle_id;
+
+  if v_owner is null then
+    return query select false, 'Vehículo no encontrado.';
+    return;
+  end if;
+
+  if v_owner <> v_uid then
+    return query select false, 'No autorizado.';
+    return;
+  end if;
+
+  if v_impounded then
+    return query select false, 'No puedes eliminar un vehículo incautado. Pide a un agente que lo libere primero.';
+    return;
+  end if;
+
+  delete from public.vehicles where id = p_vehicle_id;
+  perform public.write_audit_log(v_uid, 'vehiculo_eliminado', p_vehicle_id::text, '{}'::jsonb);
+  return query select true, 'Vehículo eliminado.';
+end;
+$$;

@@ -152,8 +152,20 @@ export default function DniCard({ dni }: { dni: DniCardData }) {
           </div>
 
           {/* BACK */}
-          <div className="flip-face flip-face-back absolute inset-0 overflow-hidden rounded-2xl border border-black/10 bg-[#f3efe4] shadow-hud">
-            <div className="flex h-full flex-col justify-between p-3 text-black sm:p-4">
+          <div
+            className="flip-face flip-face-back absolute inset-0 overflow-hidden rounded-2xl border border-black/10 shadow-hud"
+            style={{
+              background: 'linear-gradient(135deg, #f6cd7a 0%, #eeb44a 55%, #e8a13a 100%)',
+            }}
+          >
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.15]"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(45deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0.5) 1px, transparent 1px, transparent 8px)',
+              }}
+            />
+            <div className="relative flex h-full flex-col justify-between p-3 text-black sm:p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-display text-[9px] font-bold tracking-[0.15em] text-[#a8232f] sm:text-[10px]">

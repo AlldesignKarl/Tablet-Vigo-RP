@@ -19,6 +19,8 @@ export const registerVehicleSchema = z.object({
   color: z.string().trim().min(1).max(30),
 });
 
+export const deleteVehicleSchema = z.object({ vehicleId: z.string().uuid() });
+
 export const purchaseLicenseSchema = z.object({ licenseTypeId: z.string().uuid() });
 export const purchaseProductSchema = z.object({ productId: z.string().uuid() });
 export const payFineSchema = z.object({ fineId: z.string().uuid() });

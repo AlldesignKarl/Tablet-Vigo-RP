@@ -401,6 +401,7 @@ export interface Database {
         Args: { p_plate: string; p_brand: string; p_model: string; p_color: string };
         Returns: { success: boolean; message: string; vehicle_id: string | null }[];
       };
+      delete_vehicle: { Args: { p_vehicle_id: string }; Returns: { success: boolean; message: string }[] };
       request_police_access_code: {
         Args: Record<string, never>;
         Returns: { success: boolean; message: string; code: string | null }[];

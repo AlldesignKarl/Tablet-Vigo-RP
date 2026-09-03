@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Car } from 'lucide-react';
+import { Car, Trash2 } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { useToast } from '@/components/ui/ToastProvider';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import type { Database } from '@/types/database';
 
 type Vehicle = Database['public']['Tables']['vehicles']['Row'];
@@ -15,6 +16,30 @@ export default function VehiclesPanel({ vehicles }: { vehicles: Vehicle[] }) {
   const [showForm, setShowForm] = useState(vehicles.length === 0);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ plate: '', brand: '', model: '', color: '' });
+  const [toDelete, setToDelete] = useState<Vehicle | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/vehiculos/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vehicleId: toDelete.id }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        push({ kind: 'error', title: 'No se pudo eliminar', message: json.error });
+        return;
+      }
+      push({ kind: 'success', title: 'Vehículo eliminado', message: `Matrícula ${toDelete.plate} eliminada.` });
+      setToDelete(null);
+      router.refresh();
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -77,7 +102,18 @@ export default function VehiclesPanel({ vehicles }: { vehicles: Vehicle[] }) {
           <div key={v.id} className="hud-panel space-y-2 p-5">
             <div className="flex items-center justify-between">
               <span className="rounded-md bg-white/10 px-2 py-1 font-mono text-sm font-bold text-white">{v.plate}</span>
-              {v.impounded && <span className="rounded-full bg-danger-500/20 px-2 py-0.5 text-[10px] font-semibold text-danger-500">INCAUTADO</span>}
+              <div className="flex items-center gap-2">
+                {v.impounded && <span className="rounded-full bg-danger-500/20 px-2 py-0.5 text-[10px] font-semibold text-danger-500">INCAUTADO</span>}
+                {!v.impounded && (
+                  <button
+                    onClick={() => setToDelete(v)}
+                    title="Eliminar vehículo"
+                    className="no-glow flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition hover:border-danger-500/40 hover:text-danger-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  </button>
+                )}
+              </div>
             </div>
             <p className="text-sm text-white">
               {v.brand} {v.model}
@@ -95,6 +131,17 @@ export default function VehiclesPanel({ vehicles }: { vehicles: Vehicle[] }) {
           <p className="text-sm text-slate-500">Todavía no has registrado ningún vehículo.</p>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!toDelete}
+        title="Eliminar vehículo"
+        description={toDelete ? `¿Seguro que quieres eliminar la matrícula ${toDelete.plate}? Esta acción no se puede deshacer.` : ''}
+        confirmLabel="Eliminar"
+        danger
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setToDelete(null)}
+      />
     </div>
   );
 }

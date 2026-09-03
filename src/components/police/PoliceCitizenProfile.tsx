@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { centsToEuros, formatDate, formatDateTime } from '@/lib/format';
 import { useToast } from '@/components/ui/ToastProvider';
+import Portal from '@/components/ui/Portal';
 import type { CitizenProfile } from '@/lib/data/citizen';
 import type { Database } from '@/types/database';
 
@@ -280,20 +281,22 @@ function ModalShell({ title, onClose, children, onSubmit, loading }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <form onSubmit={onSubmit} className="hud-panel w-full max-w-md space-y-4 p-6">
-        <h3 className="font-display text-lg font-bold text-white">{title}</h3>
-        {children}
-        <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5">
-            Cancelar
-          </button>
-          <button type="submit" disabled={loading} className="rounded-lg bg-police-500 px-4 py-2 text-sm font-semibold text-white hover:bg-police-500/80 disabled:opacity-60">
-            {loading ? 'Procesando…' : 'Confirmar'}
-          </button>
-        </div>
-      </form>
-    </div>
+    <Portal>
+      <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+        <form onSubmit={onSubmit} className="hud-panel my-auto w-full max-w-md space-y-4 p-6">
+          <h3 className="font-display text-lg font-bold text-white">{title}</h3>
+          {children}
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5">
+              Cancelar
+            </button>
+            <button type="submit" disabled={loading} className="rounded-lg bg-police-500 px-4 py-2 text-sm font-semibold text-white hover:bg-police-500/80 disabled:opacity-60">
+              {loading ? 'Procesando…' : 'Confirmar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </Portal>
   );
 }
 

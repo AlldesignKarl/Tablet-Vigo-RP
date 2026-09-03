@@ -7,7 +7,7 @@ export default function BootScreen() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setReady(true), 1900);
+    const t = setTimeout(() => setReady(true), 700);
     return () => clearTimeout(t);
   }, []);
 
@@ -29,7 +29,7 @@ export default function BootScreen() {
         </div>
 
         <div className="mt-4 h-px w-56 overflow-hidden rounded-full bg-white/10">
-          <div className="h-full w-full origin-left animate-[bootPulse_1.9s_ease-in-out] bg-gradient-to-r from-transparent via-accent-400 to-transparent" />
+          <div className="h-full w-full origin-left animate-[bootPulse_0.7s_ease-in-out] bg-gradient-to-r from-transparent via-accent-400 to-transparent" />
         </div>
 
         <div
