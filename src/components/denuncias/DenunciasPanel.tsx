@@ -26,6 +26,7 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
   const router = useRouter();
   const { push } = useToast();
   const [query, setQuery] = useState('');
+  const [searchBy, setSearchBy] = useState<'nombre' | 'roblox'>('nombre');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -45,7 +46,7 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
       const res = await fetch('/api/denuncias/search-citizen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, by: 'nombre' }),
+        body: JSON.stringify({ query, by: searchBy }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
@@ -105,11 +106,32 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
 
         {!accused ? (
           <>
+            <div className="flex gap-1.5">
+              {(
+                [
+                  { value: 'nombre', label: 'Nombre y apellidos' },
+                  { value: 'roblox', label: 'Usuario de Roblox' },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setSearchBy(opt.value)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    searchBy === opt.value
+                      ? 'bg-accent-500/20 text-accent-400'
+                      : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
             <form onSubmit={handleSearch} className="flex gap-2">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Busca por nombre o apellidos..."
+                placeholder={searchBy === 'roblox' ? 'Usuario de Roblox...' : 'Nombre y apellidos...'}
                 className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white outline-none focus:border-accent-500/60"
               />
               <button
@@ -142,7 +164,7 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
               </div>
             ) : (
               searched &&
-              !searching && <p className="text-sm text-slate-500">No se ha encontrado a nadie con ese nombre.</p>
+              !searching && <p className="text-sm text-slate-500">No se ha encontrado a nadie con esos datos.</p>
             )}
           </>
         ) : (

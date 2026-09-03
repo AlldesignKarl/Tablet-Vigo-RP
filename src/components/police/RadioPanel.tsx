@@ -22,6 +22,17 @@ const CHANNELS = [
 
 const EMERGENCY_PREFIX = '🚨 LLAMADA DE EMERGENCIA:';
 
+function randomKey(): string {
+  // crypto.randomUUID() no está disponible en todos los navegadores/webviews
+  // (requiere contexto seguro); si falla, usamos un identificador aleatorio
+  // igual de válido para la key de presencia en vez de romper la página.
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `radio-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+  }
+}
+
 export default function RadioPanel({ callsign }: { callsign: string }) {
   const [channel, setChannel] = useState<(typeof CHANNELS)[number]['code']>('general');
   const [messages, setMessages] = useState<RadioMessage[]>([]);
@@ -30,6 +41,7 @@ export default function RadioPanel({ callsign }: { callsign: string }) {
   const [sending, setSending] = useState(false);
   const [transmitting, setTransmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
@@ -39,36 +51,48 @@ export default function RadioPanel({ callsign }: { callsign: string }) {
 
     async function join() {
       setLoading(true);
+      setError(null);
       setOnline([]);
 
-      const { data } = await supabase
-        .from('radio_messages')
-        .select('*')
-        .eq('channel', channel)
-        .order('created_at', { ascending: false })
-        .limit(60);
-      if (cancelled) return;
-      setMessages((data ?? []).reverse());
-      setLoading(false);
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('radio_messages')
+          .select('*')
+          .eq('channel', channel)
+          .order('created_at', { ascending: false })
+          .limit(60);
+        if (cancelled) return;
+        if (fetchError) throw fetchError;
+        setMessages((data ?? []).reverse());
+        setLoading(false);
 
-      rt = supabase
-        .channel(`radio-${channel}`, { config: { presence: { key: crypto.randomUUID() } } })
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'radio_messages', filter: `channel=eq.${channel}` },
-          (payload) => {
-            setMessages((prev) => [...prev, payload.new as RadioMessage]);
-          },
-        )
-        .on('presence', { event: 'sync' }, () => {
-          const state = rt!.presenceState<PresenceState>();
-          setOnline(Object.values(state).flat());
-        })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            await rt!.track({ callsign, onlineAt: new Date().toISOString() });
-          }
-        });
+        const rtChannel = supabase
+          .channel(`radio-${channel}`, { config: { presence: { key: randomKey() } } })
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'radio_messages', filter: `channel=eq.${channel}` },
+            (payload) => {
+              setMessages((prev) => [...prev, payload.new as RadioMessage]);
+            },
+          )
+          .on('presence', { event: 'sync' }, () => {
+            if (!rt) return;
+            const state = rt.presenceState<PresenceState>();
+            setOnline(Object.values(state).flat());
+          })
+          .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED' && rt) {
+              await rt.track({ callsign, onlineAt: new Date().toISOString() });
+            }
+          });
+        rt = rtChannel;
+      } catch (err) {
+        console.error('[radio] fallo al conectar con el canal', err);
+        if (!cancelled) {
+          setLoading(false);
+          setError('No se pudo conectar con la radio. Recarga la página e inténtalo de nuevo.');
+        }
+      }
     }
 
     join();
@@ -97,7 +121,14 @@ export default function RadioPanel({ callsign }: { callsign: string }) {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      await supabase.from('radio_messages').insert({ sender_id: user.id, callsign, channel, message: trimmed });
+      const { error: insertError } = await supabase
+        .from('radio_messages')
+        .insert({ sender_id: user.id, callsign, channel, message: trimmed });
+      if (insertError) {
+        console.error('[radio] fallo al transmitir', insertError);
+        setError('No se pudo transmitir el mensaje.');
+        return;
+      }
       setText('');
     } finally {
       setSending(false);
@@ -170,6 +201,12 @@ export default function RadioPanel({ callsign }: { callsign: string }) {
           </span>
         </div>
 
+        {error && (
+          <p className="mb-2 rounded-lg border border-danger-500/40 bg-danger-500/10 px-3 py-2 text-xs text-danger-500">
+            {error}
+          </p>
+        )}
+
         <div className="flex-1 space-y-2 overflow-y-auto pr-1">
           {loading ? (
             <p className="text-sm text-slate-500">Sintonizando canal…</p>
@@ -224,7 +261,7 @@ export default function RadioPanel({ callsign }: { callsign: string }) {
             type="submit"
             disabled={sending || !text.trim()}
             className={`flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white transition disabled:opacity-50 ${
-              transmitting ? 'animate-pulse bg-police-400' : 'bg-police-500 hover:bg-police-500/80'
+              transmitting ? 'animate-pulse bg-accent-500' : 'bg-police-500 hover:bg-police-500/80'
             }`}
           >
             <Mic className="h-4 w-4" strokeWidth={1.75} />

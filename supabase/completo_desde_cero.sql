@@ -1,10 +1,9 @@
--- ===================================================================
--- VIGO RP TABLET — Script completo (0001 a 0012), IDEMPOTENTE.
--- Puedes pegarlo y ejecutarlo tantas veces como quieras, sin importar
--- qué parte ya se hubiera aplicado antes.
--- ===================================================================
+-- =====================================================================
+-- Instalación completa desde cero (concatenación de supabase/migrations/*.sql en orden)
+-- Generado automáticamente. No editar a mano: edita las migraciones.
+-- =====================================================================
 
--- Archivo: supabase/migrations/0001_schema.sql
+-- ---- supabase/migrations/0001_schema.sql ----
 -- =====================================================================
 -- VIGO RP TABLET — Esquema principal
 -- =====================================================================
@@ -384,7 +383,7 @@ create trigger set_updated_at_vehicles before update on public.vehicles for each
 drop trigger if exists set_updated_at_police_users on public.police_users;
 create trigger set_updated_at_police_users before update on public.police_users for each row execute procedure public.set_updated_at();
 
--- Archivo: supabase/migrations/0002_functions.sql
+-- ---- supabase/migrations/0002_functions.sql ----
 -- =====================================================================
 -- Funciones de permisos y operaciones atómicas (SECURITY DEFINER)
 -- =====================================================================
@@ -961,7 +960,7 @@ $$;
 
 create extension if not exists pgcrypto;
 
--- Archivo: supabase/migrations/0003_views.sql
+-- ---- supabase/migrations/0003_views.sql ----
 -- =====================================================================
 -- Vistas agregadas (siempre calculadas en vivo desde las tablas fuente,
 -- nunca contadores duplicados que puedan desincronizarse)
@@ -1021,7 +1020,7 @@ select
      where lt.code = 'armas' and l.active) as total_weapon_licenses,
   (select count(*) from public.wanted_persons where active) as total_wanted;
 
--- Archivo: supabase/migrations/0004_rls.sql
+-- ---- supabase/migrations/0004_rls.sql ----
 -- =====================================================================
 -- Row Level Security
 -- =====================================================================
@@ -1186,7 +1185,7 @@ create policy audit_logs_admin_select on public.audit_logs for select using (pub
 
 -- rate_limits: sin policies para clientes (solo accesible via función definer)
 
--- Archivo: supabase/migrations/0005_seed.sql
+-- ---- supabase/migrations/0005_seed.sql ----
 -- =====================================================================
 -- Seed de configuración inicial (NO incluye ciudadanos ficticios)
 -- =====================================================================
@@ -1220,7 +1219,7 @@ insert into public.license_types (code, name, description, icon, price_cents, ac
   ('seguro_coche', 'Seguro obligatorio de coche', 'Seguro obligatorio para circular legalmente con tu vehículo.', '🚗', 80000, true, true)
 on conflict (code) do nothing;
 
--- Archivo: supabase/migrations/0006_realtime.sql
+-- ---- supabase/migrations/0006_realtime.sql ----
 -- Habilita Supabase Realtime (Postgres Changes) para la radio policial.
 -- Comprueba primero si la tabla ya es miembro de la publicación para que
 -- este archivo se pueda volver a ejecutar sin errores.
@@ -1236,7 +1235,7 @@ begin
   end if;
 end $$;
 
--- Archivo: supabase/migrations/0007_admin_functions.sql
+-- ---- supabase/migrations/0007_admin_functions.sql ----
 -- =====================================================================
 -- Funciones y políticas adicionales para el panel de administración
 -- =====================================================================
@@ -1319,7 +1318,7 @@ begin
 end;
 $$;
 
--- Archivo: supabase/migrations/0008_shop_weapons.sql
+-- ---- supabase/migrations/0008_shop_weapons.sql ----
 -- =====================================================================
 -- Licencias de armas específicas por modelo + equipamiento en la tienda
 -- =====================================================================
@@ -1346,7 +1345,7 @@ insert into public.shop_products (code, name, description, icon, price_cents, ac
   ('equipo_guantes', 'Guantes tácticos', 'Guantes tácticos para uso de rol.', '🧤', 8000, true)
 on conflict (code) do nothing;
 
--- Archivo: supabase/migrations/0009_police_access_codes.sql
+-- ---- supabase/migrations/0009_police_access_codes.sql ----
 -- =====================================================================
 -- Acceso policial por código de un solo uso enviado por email
 -- =====================================================================
@@ -1457,7 +1456,7 @@ begin
 end;
 $$;
 
--- Archivo: supabase/migrations/0010_shop_more_items.sql
+-- ---- supabase/migrations/0010_shop_more_items.sql ----
 -- =====================================================================
 -- Más licencias de armas y más equipamiento en la tienda
 -- =====================================================================
@@ -1479,7 +1478,7 @@ insert into public.shop_products (code, name, description, icon, price_cents, ac
   ('equipo_gafas_sol', 'Gafas de sol', 'Complemento estético para uso de rol.', '🕶️', 8000, true)
 on conflict (code) do nothing;
 
--- Archivo: supabase/migrations/0011_fix_pgcrypto_schema.sql
+-- ---- supabase/migrations/0011_fix_pgcrypto_schema.sql ----
 -- =====================================================================
 -- Arregla "function gen_salt(unknown) does not exist" / "function crypt(...)
 -- does not exist"
@@ -1507,7 +1506,7 @@ begin
   end if;
 end $$;
 
--- Archivo: supabase/migrations/0012_complaints.sql
+-- ---- supabase/migrations/0012_complaints.sql ----
 -- =====================================================================
 -- Denuncias entre ciudadanos + gestión policial
 -- =====================================================================
@@ -1677,4 +1676,150 @@ select
      join public.license_types lt on lt.id = l.license_type_id
      where (lt.code = 'armas' or lt.code like 'arma_%') and l.active) as total_weapon_licenses,
   (select count(*) from public.wanted_persons where active) as total_wanted;
+
+-- ---- supabase/migrations/0013_fix_denuncias_search.sql ----
+-- =====================================================================
+-- Arreglo: la búsqueda de ciudadanos para poner una denuncia no
+-- encontraba a nadie al escribir el nombre completo (nombre + apellidos)
+-- =====================================================================
+-- search_citizens_public() solo comparaba el texto buscado contra
+-- first_name O last_name por separado, así que una búsqueda como
+-- "Juan Pérez" nunca encajaba con first_name = 'Juan' ni con
+-- last_name = 'Pérez' (la cadena completa no está contenida en ninguna
+-- de las dos columnas). Ahora también compara contra el nombre completo
+-- en ambos órdenes, y normaliza espacios repetidos en la búsqueda.
+
+create or replace function public.search_citizens_public(p_query text, p_by text default 'nombre')
+returns table (profile_id uuid, first_name text, last_name text, dni_number text, roblox_avatar_url text)
+language plpgsql security definer set search_path = public as $$
+declare
+  v_query text := trim(regexp_replace(p_query, '\s+', ' ', 'g'));
+begin
+  if auth.uid() is null then
+    raise exception 'No autenticado';
+  end if;
+
+  if p_by = 'dni' then
+    return query
+      select d.profile_id, d.first_name, d.last_name, d.dni_number, d.roblox_avatar_url
+      from public.dnis d
+      where d.profile_id <> auth.uid() and d.dni_number ilike '%' || v_query || '%'
+      limit 15;
+  elsif p_by = 'roblox' then
+    return query
+      select d.profile_id, d.first_name, d.last_name, d.dni_number, d.roblox_avatar_url
+      from public.dnis d
+      where d.profile_id <> auth.uid() and d.roblox_username ilike '%' || v_query || '%'
+      limit 15;
+  else
+    return query
+      select d.profile_id, d.first_name, d.last_name, d.dni_number, d.roblox_avatar_url
+      from public.dnis d
+      where d.profile_id <> auth.uid()
+        and (
+          d.first_name ilike '%' || v_query || '%'
+          or d.last_name ilike '%' || v_query || '%'
+          or (d.first_name || ' ' || d.last_name) ilike '%' || v_query || '%'
+          or (d.last_name || ' ' || d.first_name) ilike '%' || v_query || '%'
+        )
+      limit 15;
+  end if;
+end;
+$$;
+
+-- El mismo problema existía en la búsqueda de policía (citizen_profile_view
+-- filtrado por first_name/last_name por separado desde el backend), así
+-- que añadimos una columna de nombre completo a la vista para que el
+-- backend también pueda buscar por nombre y apellidos juntos.
+-- Nota: "create or replace view" no permite insertar una columna nueva en
+-- medio de la lista (solo añadir al final), así que full_name va al final
+-- para no romper el "replace" sobre la vista ya desplegada en producción.
+create or replace view public.citizen_profile_view as
+select
+  d.profile_id,
+  d.id as dni_id,
+  d.dni_number,
+  d.first_name,
+  d.last_name,
+  d.birth_date,
+  d.roblox_username,
+  d.roblox_user_id,
+  d.roblox_avatar_url,
+  d.license_points,
+  d.issued_at,
+  ba.balance_cents,
+  ba.next_salary_payment,
+  ba.last_salary_payment,
+  j.name as job_name,
+  j.salary_cents,
+  coalesce(fines_agg.total_count, 0) as fines_count,
+  coalesce(fines_agg.pending_amount_cents, 0) as fines_pending_amount_cents,
+  coalesce(arrests_agg.count, 0) as arrests_count,
+  coalesce(vehicles_agg.count, 0) as vehicles_count,
+  coalesce(confiscations_agg.count, 0) as confiscations_count,
+  wp.id is not null as is_wanted,
+  wp.reason as wanted_reason,
+  wp.created_at as wanted_since,
+  (d.first_name || ' ' || d.last_name) as full_name
+from public.dnis d
+left join public.bank_accounts ba on ba.profile_id = d.profile_id
+left join public.jobs j on j.id = ba.job_id
+left join lateral (
+  select count(*) as total_count,
+         sum(amount_cents) filter (where status = 'pendiente') as pending_amount_cents
+  from public.fines where citizen_id = d.profile_id
+) fines_agg on true
+left join lateral (
+  select count(*) as count from public.arrests where citizen_id = d.profile_id
+) arrests_agg on true
+left join lateral (
+  select count(*) as count from public.vehicles where profile_id = d.profile_id
+) vehicles_agg on true
+left join lateral (
+  select count(*) as count from public.confiscations where citizen_id = d.profile_id
+) confiscations_agg on true
+left join public.wanted_persons wp on wp.citizen_id = d.profile_id and wp.active = true;
+
+-- ---- supabase/migrations/0014_empleos_rangos.sql ----
+-- =====================================================================
+-- Catálogo de empleos/rangos por sección + asignación manual desde admin
+-- =====================================================================
+-- Sueldos cada 48h. "on conflict ... do update" para que sea seguro
+-- volver a ejecutar esta migración y corrija el sueldo si ya existía.
+
+insert into public.jobs (code, name, salary_cents) values
+  ('cnp', 'CNP - Agente', 250000),
+  ('jefe_cnp', 'CNP - Jefatura', 500000),
+  ('gc', 'Guardia Civil - Agente', 250000),
+  ('jefe_gc', 'Guardia Civil - Jefatura', 500000),
+  ('geo', 'GEO - Agente', 300000),
+  ('jefe_geo', 'GEO - Jefatura', 500000),
+  ('uip', 'UIP - Agente', 300000),
+  ('jefe_uip', 'UIP - Jefatura', 500000),
+  ('upr', 'UPR - Agente', 300000),
+  ('jefe_upr', 'UPR - Jefatura', 500000),
+  ('paramedico', 'Paramédico', 245000),
+  ('jefe_sanidad', 'Sanidad - Jefatura', 500000),
+  ('bombero', 'Bombero', 245000),
+  ('jefe_bomberos', 'Bomberos - Jefatura', 500000)
+on conflict (code) do update set name = excluded.name, salary_cents = excluded.salary_cents;
+
+-- Permite a un admin asignar el empleo/rango de un ciudadano (determina
+-- su sueldo cada 48h). bank_accounts se crea automáticamente al hacerse
+-- el DNI, así que aquí solo actualizamos su job_id.
+create or replace function public.admin_set_job(p_profile_id uuid, p_job_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'No autorizado';
+  end if;
+
+  update public.bank_accounts set job_id = p_job_id where profile_id = p_profile_id;
+  if not found then
+    raise exception 'Este ciudadano no tiene cuenta bancaria (no tiene DNI).';
+  end if;
+
+  perform public.write_audit_log(auth.uid(), 'admin_cambio_empleo', p_profile_id::text, jsonb_build_object('job_id', p_job_id));
+end;
+$$;
 

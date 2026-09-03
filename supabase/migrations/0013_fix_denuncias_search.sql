@@ -1,15 +1,4 @@
 -- =====================================================================
--- Aplica en tu base de datos ya existente lo último añadido:
---  1) Arregla la búsqueda de ciudadanos en Denuncias (antes no encontraba
---     a nadie al buscar por nombre y apellidos juntos).
---  2) Añade el catálogo de empleos/rangos por sección (CNP, GC, GEO, UIP,
---     UPR, Paramédico, Bombero + jefaturas) y permite al admin asignar el
---     empleo de cada ciudadano desde /admin/usuarios.
--- Es idempotente: se puede ejecutar varias veces sin problema.
--- =====================================================================
-
--- Archivo: supabase/migrations/0013_fix_denuncias_search.sql
--- =====================================================================
 -- Arreglo: la búsqueda de ciudadanos para poner una denuncia no
 -- encontraba a nadie al escribir el nombre completo (nombre + apellidos)
 -- =====================================================================
@@ -58,6 +47,13 @@ begin
 end;
 $$;
 
+-- El mismo problema existía en la búsqueda de policía (citizen_profile_view
+-- filtrado por first_name/last_name por separado desde el backend), así
+-- que añadimos una columna de nombre completo a la vista para que el
+-- backend también pueda buscar por nombre y apellidos juntos.
+-- Nota: "create or replace view" no permite insertar una columna nueva en
+-- medio de la lista (solo añadir al final), así que full_name va al final
+-- para no romper el "replace" sobre la vista ya desplegada en producción.
 create or replace view public.citizen_profile_view as
 select
   d.profile_id,
@@ -103,41 +99,3 @@ left join lateral (
   select count(*) as count from public.confiscations where citizen_id = d.profile_id
 ) confiscations_agg on true
 left join public.wanted_persons wp on wp.citizen_id = d.profile_id and wp.active = true;
-
--- Archivo: supabase/migrations/0014_empleos_rangos.sql
--- =====================================================================
--- Catálogo de empleos/rangos por sección + asignación manual desde admin
--- =====================================================================
-
-insert into public.jobs (code, name, salary_cents) values
-  ('cnp', 'CNP - Agente', 250000),
-  ('jefe_cnp', 'CNP - Jefatura', 500000),
-  ('gc', 'Guardia Civil - Agente', 250000),
-  ('jefe_gc', 'Guardia Civil - Jefatura', 500000),
-  ('geo', 'GEO - Agente', 300000),
-  ('jefe_geo', 'GEO - Jefatura', 500000),
-  ('uip', 'UIP - Agente', 300000),
-  ('jefe_uip', 'UIP - Jefatura', 500000),
-  ('upr', 'UPR - Agente', 300000),
-  ('jefe_upr', 'UPR - Jefatura', 500000),
-  ('paramedico', 'Paramédico', 245000),
-  ('jefe_sanidad', 'Sanidad - Jefatura', 500000),
-  ('bombero', 'Bombero', 245000),
-  ('jefe_bomberos', 'Bomberos - Jefatura', 500000)
-on conflict (code) do update set name = excluded.name, salary_cents = excluded.salary_cents;
-
-create or replace function public.admin_set_job(p_profile_id uuid, p_job_id uuid)
-returns void language plpgsql security definer set search_path = public as $$
-begin
-  if not public.is_admin() then
-    raise exception 'No autorizado';
-  end if;
-
-  update public.bank_accounts set job_id = p_job_id where profile_id = p_profile_id;
-  if not found then
-    raise exception 'Este ciudadano no tiene cuenta bancaria (no tiene DNI).';
-  end if;
-
-  perform public.write_audit_log(auth.uid(), 'admin_cambio_empleo', p_profile_id::text, jsonb_build_object('job_id', p_job_id));
-end;
-$$;

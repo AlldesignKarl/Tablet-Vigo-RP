@@ -120,3 +120,8 @@ export const adminRoleSchema = z.object({
   profileId: z.string().uuid(),
   role: z.enum(['ciudadano', 'policia', 'admin', 'fundador']),
 });
+
+export const adminAssignJobSchema = z.object({
+  profileId: z.string().uuid(),
+  jobId: z.string().uuid(),
+});

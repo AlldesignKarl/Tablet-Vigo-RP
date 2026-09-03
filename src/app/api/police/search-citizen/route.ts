@@ -16,7 +16,7 @@ export const POST = withErrorHandling(async (req) => {
   } else if (body.by === 'roblox') {
     query = query.ilike('roblox_username', q);
   } else {
-    query = query.or(`first_name.ilike.${q},last_name.ilike.${q}`);
+    query = query.or(`first_name.ilike.${q},last_name.ilike.${q},full_name.ilike.${q}`);
   }
 
   const { data, error } = await query;

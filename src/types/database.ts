@@ -313,6 +313,7 @@ export interface Database {
           dni_number: string;
           first_name: string;
           last_name: string;
+          full_name: string;
           birth_date: string;
           roblox_username: string;
           roblox_user_id: number;
@@ -409,6 +410,7 @@ export interface Database {
       pay_all_due_salaries: { Args: Record<string, never>; Returns: number };
       admin_set_police_code: { Args: { p_code: string }; Returns: undefined };
       admin_set_role: { Args: { p_profile_id: string; p_role: AppRole }; Returns: undefined };
+      admin_set_job: { Args: { p_profile_id: string; p_job_id: string }; Returns: undefined };
       admin_adjust_balance: { Args: { p_profile_id: string; p_amount_cents: number; p_reason: string }; Returns: undefined };
       admin_set_config: { Args: { p_key: string; p_value: Record<string, unknown> }; Returns: undefined };
       check_rate_limit: { Args: { p_key: string; p_max_count: number; p_window_seconds: number }; Returns: boolean };
