@@ -2,6 +2,10 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import BootScreen from '@/components/boot/BootScreen';
 
+// Sin esto, Next.js puede cachear las respuestas de Supabase (fetch) en el
+// Data Cache de Vercel y servir datos desactualizados entre despliegues.
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   const supabase = createServerSupabaseClient();
   const {

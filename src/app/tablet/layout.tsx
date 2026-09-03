@@ -3,6 +3,12 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getCitizenProfile } from '@/lib/data/citizen';
 import TabletShell from '@/components/tablet/TabletShell';
 
+// Sin esto, Next.js puede cachear las respuestas de Supabase (fetch) en el
+// Data Cache de Vercel y servir datos desactualizados (saldo, licencias,
+// productos de la tienda, etc.) entre peticiones. Se aplica a todo lo que
+// cuelga de /tablet.
+export const dynamic = 'force-dynamic';
+
 export default async function TabletLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServerSupabaseClient();
   const {

@@ -2,6 +2,10 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import AdminNav from '@/components/admin/AdminNav';
 
+// Mismo motivo que en /tablet: evita que Vercel sirva datos cacheados y
+// desactualizados en el panel de administración.
+export const dynamic = 'force-dynamic';
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServerSupabaseClient();
   const {
