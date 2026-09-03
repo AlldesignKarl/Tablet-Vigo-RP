@@ -1,5 +1,5 @@
 -- ===================================================================
--- VIGO RP TABLET — Script completo (0001 a 0008), IDEMPOTENTE.
+-- VIGO RP TABLET — Script completo (0001 a 0009), IDEMPOTENTE.
 -- Puedes pegarlo y ejecutarlo tantas veces como quieras, sin importar
 -- qué parte ya se hubiera aplicado antes.
 -- ===================================================================
@@ -1345,4 +1345,115 @@ insert into public.shop_products (code, name, description, icon, price_cents, ac
   ('equipo_chaleco', 'Chaleco antibalas', 'Chaleco de protección para uso de rol.', '🦺', 45000, true),
   ('equipo_guantes', 'Guantes tácticos', 'Guantes tácticos para uso de rol.', '🧤', 8000, true)
 on conflict (code) do nothing;
+
+-- Archivo: supabase/migrations/0009_police_access_codes.sql
+-- =====================================================================
+-- Acceso policial por código de un solo uso enviado por email
+-- =====================================================================
+-- Sustituye el código fijo compartido (p.ej. "1212") por un código de 6
+-- dígitos que cambia en cada solicitud y se envía únicamente al correo
+-- del dueño del servidor. Un ciudadano nunca ve el código: solo puede
+-- pedir que se genere y se lo entregue quien reciba el email.
+
+create table if not exists public.police_access_codes (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  code_hash text not null,
+  expires_at timestamptz not null,
+  used boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+alter table public.police_access_codes enable row level security;
+-- Sin policies para clientes (mismo patrón que rate_limits): solo las
+-- funciones security definer de abajo pueden leer/escribir esta tabla.
+
+create or replace function public.request_police_access_code()
+returns table (success boolean, message text, code text)
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_allowed boolean;
+  v_code text;
+begin
+  if v_uid is null then
+    raise exception 'No autenticado';
+  end if;
+
+  if not exists (select 1 from public.dnis where profile_id = v_uid) then
+    return query select false, 'Necesitas tener un DNI creado.', null::text;
+    return;
+  end if;
+
+  select public.check_rate_limit('police_code_request:' || v_uid::text, 3, 600) into v_allowed;
+  if not v_allowed then
+    return query select false, 'Has pedido demasiados códigos. Espera unos minutos e inténtalo de nuevo.', null::text;
+    return;
+  end if;
+
+  -- Invalida cualquier código anterior sin usar de este ciudadano, para que
+  -- solo el último enviado por email sea válido.
+  update public.police_access_codes set used = true where profile_id = v_uid and used = false;
+
+  v_code := lpad(floor(random() * 1000000)::text, 6, '0');
+
+  insert into public.police_access_codes (profile_id, code_hash, expires_at)
+    values (v_uid, crypt(v_code, gen_salt('bf')), now() + interval '10 minutes');
+
+  perform public.write_audit_log(v_uid, 'codigo_policial_solicitado', v_uid::text, '{}'::jsonb);
+  return query select true, 'Código generado.', v_code;
+end;
+$$;
+
+create or replace function public.redeem_police_access_code(p_code text)
+returns table (success boolean, message text)
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_allowed boolean;
+  v_row public.police_access_codes%rowtype;
+begin
+  if v_uid is null then
+    raise exception 'No autenticado';
+  end if;
+
+  select public.check_rate_limit('police_code_verify:' || v_uid::text, 5, 300) into v_allowed;
+  if not v_allowed then
+    return query select false, 'Demasiados intentos. Espera unos minutos.';
+    return;
+  end if;
+
+  select * into v_row from public.police_access_codes
+    where profile_id = v_uid and used = false
+    order by created_at desc
+    limit 1;
+
+  if not found then
+    return query select false, 'No has solicitado ningún código todavía.';
+    return;
+  end if;
+
+  if v_row.expires_at < now() then
+    return query select false, 'El código ha caducado. Solicita uno nuevo.';
+    return;
+  end if;
+
+  if crypt(p_code, v_row.code_hash) <> v_row.code_hash then
+    perform public.write_audit_log(v_uid, 'intento_codigo_policial_fallido', v_uid::text, '{}'::jsonb);
+    return query select false, 'Código incorrecto.';
+    return;
+  end if;
+
+  update public.police_access_codes set used = true where id = v_row.id;
+
+  insert into public.police_users (profile_id, callsign, authorized)
+    values (v_uid, 'Z-' || floor(random() * 90 + 10)::text, true)
+    on conflict (profile_id) do update set authorized = true;
+
+  update public.profiles set role = 'policia' where id = v_uid and role = 'ciudadano';
+
+  perform public.write_audit_log(v_uid, 'acceso_policial_concedido', v_uid::text, '{}'::jsonb);
+  return query select true, 'Acceso policial concedido.';
+end;
+$$;
 

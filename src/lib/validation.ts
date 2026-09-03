@@ -23,15 +23,8 @@ export const purchaseLicenseSchema = z.object({ licenseTypeId: z.string().uuid()
 export const purchaseProductSchema = z.object({ productId: z.string().uuid() });
 export const payFineSchema = z.object({ fineId: z.string().uuid() });
 
-export const policeCodeSchema = z.object({
-  code: z.string().trim().min(4).max(12),
-  callsign: z
-    .string()
-    .trim()
-    .max(10)
-    .regex(/^[A-Za-z0-9-]*$/, 'Indicativo inválido.')
-    .optional()
-    .default(''),
+export const policeAccessCodeSchema = z.object({
+  code: z.string().trim().regex(/^\d{6}$/, 'El código debe tener 6 dígitos.'),
 });
 
 export const searchCitizenSchema = z.object({
@@ -112,8 +105,6 @@ export const adminPoliceUserSchema = z.object({
   rank: z.string().trim().min(1).max(40).default('Agente'),
   authorized: z.boolean().default(true),
 });
-
-export const adminPoliceCodeSchema = z.object({ code: z.string().trim().min(4).max(20) });
 
 export const adminRoleSchema = z.object({
   profileId: z.string().uuid(),

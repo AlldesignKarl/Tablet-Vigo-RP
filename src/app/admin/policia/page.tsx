@@ -1,6 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import PoliceUsersAdminPanel from '@/components/admin/PoliceUsersAdminPanel';
-import PoliceCodeForm from '@/components/admin/PoliceCodeForm';
 
 export default async function AdminPolicePage() {
   const supabase = createServerSupabaseClient();
@@ -13,7 +12,15 @@ export default async function AdminPolicePage() {
 
   return (
     <div className="space-y-10">
-      <PoliceCodeForm />
+      <div className="hud-panel p-5">
+        <h2 className="mb-1 font-semibold text-white">Acceso a la cuenta de policía</h2>
+        <p className="text-xs text-slate-400">
+          Ya no hay un código fijo. Cada ciudadano que pide entrar en la sección de policía genera un
+          código de un solo uso que se envía por email a{' '}
+          <span className="font-mono text-slate-300">jc.expressdesigner@gmail.com</span>. Comparte ese
+          código solo con la persona a la que quieras autorizar como policía.
+        </p>
+      </div>
       <PoliceUsersAdminPanel policeUsers={policeUsers ?? []} dnis={dnis ?? []} />
     </div>
   );

@@ -351,8 +351,12 @@ export interface Database {
         Args: { p_plate: string; p_brand: string; p_model: string; p_color: string };
         Returns: { success: boolean; message: string; vehicle_id: string | null }[];
       };
-      redeem_police_code: {
-        Args: { p_code: string; p_callsign: string };
+      request_police_access_code: {
+        Args: Record<string, never>;
+        Returns: { success: boolean; message: string; code: string | null }[];
+      };
+      redeem_police_access_code: {
+        Args: { p_code: string };
         Returns: { success: boolean; message: string }[];
       };
       police_arrest: { Args: { p_citizen_id: string; p_reason: string; p_duration_minutes: number }; Returns: string };

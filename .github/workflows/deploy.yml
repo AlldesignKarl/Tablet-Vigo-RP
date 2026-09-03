@@ -25,6 +25,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          POLICE_CODE_EMAIL: ${{ secrets.POLICE_CODE_EMAIL }}
         run: |
           set -e
           vercel deploy \
@@ -36,6 +38,8 @@ jobs:
             -e NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
             -e SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY" \
             -e CRON_SECRET="$CRON_SECRET" \
+            -e RESEND_API_KEY="$RESEND_API_KEY" \
+            -e POLICE_CODE_EMAIL="$POLICE_CODE_EMAIL" \
             -b NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
             -b NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
             | tee deploy_output.txt

@@ -5,7 +5,7 @@ import {
   arrestSchema,
   removePointsSchema,
   registerVehicleSchema,
-  policeCodeSchema,
+  policeAccessCodeSchema,
 } from '@/lib/validation';
 
 describe('createDniSchema', () => {
@@ -86,12 +86,13 @@ describe('registerVehicleSchema', () => {
   });
 });
 
-describe('policeCodeSchema', () => {
-  it('rechaza indicativos con caracteres no permitidos', () => {
-    expect(policeCodeSchema.safeParse({ code: '1212', callsign: 'Z 10!' }).success).toBe(false);
+describe('policeAccessCodeSchema', () => {
+  it('rechaza códigos que no tengan exactamente 6 dígitos', () => {
+    expect(policeAccessCodeSchema.safeParse({ code: '1212' }).success).toBe(false);
+    expect(policeAccessCodeSchema.safeParse({ code: 'abcdef' }).success).toBe(false);
   });
 
-  it('acepta un código sin indicativo (opcional)', () => {
-    expect(policeCodeSchema.safeParse({ code: '1212' }).success).toBe(true);
+  it('acepta un código de 6 dígitos', () => {
+    expect(policeAccessCodeSchema.safeParse({ code: '048213' }).success).toBe(true);
   });
 });

@@ -22,6 +22,8 @@ export const serverEnv = {
   supabaseServiceRoleKey: readEnv('SUPABASE_SERVICE_ROLE_KEY'),
   discordBotToken: readEnv('DISCORD_BOT_TOKEN'),
   cronSecret: readEnv('CRON_SECRET'),
+  resendApiKey: readEnv('RESEND_API_KEY'),
+  policeCodeEmail: readEnv('POLICE_CODE_EMAIL'),
 };
 
 export function assertServerOnly() {
