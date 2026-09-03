@@ -2,7 +2,6 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -22,21 +21,33 @@ function LoginContent() {
     setError(null);
 
     try {
-      const supabase = createClient();
+      // Llamada a NUESTRO servidor (mismo origen, sin problemas de CORS
+      // ni de la red del visitante), que es quien habla con Supabase.
+      const res = await withTimeout(
+        fetch('/api/auth/enter', { method: 'POST' }),
+        12000,
+      );
 
-      // Al llegar aquí nunca hay ya una sesión válida: la página de inicio
-      // y el middleware solo mandan a /login cuando no la hay. Creamos una
-      // sesión anónima directamente, sin llamadas previas innecesarias.
-      const { error: signInError } = await withTimeout(supabase.auth.signInAnonymously(), 10000);
+      let json: { ok: boolean; error?: string } | null = null;
+      try {
+        json = await res.json();
+      } catch {
+        json = null;
+      }
 
-      if (signInError) {
-        console.error('[login] signInAnonymously error', signInError);
-        if (signInError.message.toLowerCase().includes('anonymous')) {
+      if (!res.ok || !json?.ok) {
+        const message = json?.error ?? `Error del servidor (${res.status}).`;
+        console.error('[login] /api/auth/enter failed', res.status, message);
+        if (message.toLowerCase().includes('anonymous')) {
           setError(
             'El acceso está mal configurado: hay que activar "Allow anonymous sign-ins" en Supabase (Authentication → Sign In / Providers).',
           );
+        } else if (message.toLowerCase().includes('captcha')) {
+          setError(
+            'El acceso está mal configurado: hay que desactivar "Enable Captcha protection" en Supabase (Authentication → Attack Protection).',
+          );
         } else {
-          setError(signInError.message);
+          setError(message);
         }
         setLoading(false);
         return;
@@ -50,8 +61,8 @@ function LoginContent() {
       const timedOut = err instanceof Error && err.message === 'TIMEOUT';
       setError(
         timedOut
-          ? 'El servidor de Supabase no responde. Comprueba que el proyecto esté activo e inténtalo de nuevo.'
-          : 'No se pudo conectar. Comprueba tu conexión a internet e inténtalo de nuevo.',
+          ? 'El servidor no respondió a tiempo. Inténtalo de nuevo en unos segundos.'
+          : 'No se pudo completar la petición al servidor. Recarga la página e inténtalo de nuevo.',
       );
       setLoading(false);
     }
