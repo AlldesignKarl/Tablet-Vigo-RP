@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Landmark } from 'lucide-react';
 import { centsToEuros, formatDateTime, timeUntil } from '@/lib/format';
 import { useToast } from '@/components/ui/ToastProvider';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -37,8 +38,10 @@ export default function BankPanel({
   const { push } = useToast();
   const [claiming, setClaiming] = useState(false);
   const [fineToPay, setFineToPay] = useState<Fine | null>(null);
+  const [payAll, setPayAll] = useState(false);
   const [paying, setPaying] = useState(false);
   const salaryReady = profile.nextSalaryPayment ? new Date(profile.nextSalaryPayment).getTime() <= Date.now() : false;
+  const totalFinesCents = pendingFines.reduce((sum, f) => sum + f.amount_cents, 0);
 
   // Comprobación silenciosa al entrar: si el sueldo ya está vencido, se
   // cobra automáticamente. La operación es atómica en el servidor, así
@@ -72,22 +75,58 @@ export default function BankPanel({
     }
   }
 
+  async function payOneFine(fineId: string) {
+    const res = await fetch('/api/bank/pay-fine', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fineId }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.ok) throw new Error(json.error ?? 'No se pudo pagar la multa.');
+  }
+
   async function payFine() {
     if (!fineToPay) return;
     setPaying(true);
     try {
-      const res = await fetch('/api/bank/pay-fine', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fineId: fineToPay.id }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.ok) {
-        push({ kind: 'error', title: 'No se pudo pagar la multa', message: json.error });
-        return;
-      }
+      await payOneFine(fineToPay.id);
       push({ kind: 'success', title: 'Multa pagada', message: `Se han descontado ${centsToEuros(fineToPay.amount_cents)}.` });
       setFineToPay(null);
+      router.refresh();
+    } catch (err) {
+      push({ kind: 'error', title: 'No se pudo pagar la multa', message: err instanceof Error ? err.message : undefined });
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  async function payAllFines() {
+    setPaying(true);
+    try {
+      // Se pagan una a una (cada llamada es atómica en servidor) para que,
+      // si el saldo no llega para todas, las que sí se puedan pagar queden
+      // pagadas en vez de perderse por un fallo de todo-o-nada.
+      let paidCount = 0;
+      for (const fine of pendingFines) {
+        try {
+          await payOneFine(fine.id);
+          paidCount += 1;
+        } catch {
+          break;
+        }
+      }
+      if (paidCount === 0) {
+        push({ kind: 'error', title: 'No se pudo pagar ninguna multa', message: 'Comprueba tu saldo disponible.' });
+      } else if (paidCount < pendingFines.length) {
+        push({
+          kind: 'info',
+          title: 'Pago parcial',
+          message: `Se pagaron ${paidCount} de ${pendingFines.length} multas. El saldo no llegó para el resto.`,
+        });
+      } else {
+        push({ kind: 'success', title: 'Todas las multas pagadas', message: `Se han descontado ${centsToEuros(totalFinesCents)}.` });
+      }
+      setPayAll(false);
       router.refresh();
     } finally {
       setPaying(false);
@@ -96,7 +135,12 @@ export default function BankPanel({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-white">🏦 Banco</h1>
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200">
+          <Landmark className="h-5 w-5" strokeWidth={1.75} />
+        </span>
+        <h1 className="text-xl font-bold text-white">Banco</h1>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="hud-panel p-5">
@@ -125,7 +169,17 @@ export default function BankPanel({
 
       {pendingFines.length > 0 && (
         <div className="hud-panel p-5">
-          <h2 className="mb-3 font-semibold text-white">Multas pendientes</h2>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="font-semibold text-white">Multas pendientes</h2>
+            {pendingFines.length > 1 && (
+              <button
+                onClick={() => setPayAll(true)}
+                className="rounded-lg border border-danger-500/40 bg-danger-500/10 px-3 py-1.5 text-xs font-semibold text-danger-500 transition hover:bg-danger-500/20"
+              >
+                Pagar todas ({centsToEuros(totalFinesCents)})
+              </button>
+            )}
+          </div>
           <div className="space-y-2">
             {pendingFines.map((fine) => (
               <div key={fine.id} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.02] p-3">
@@ -181,6 +235,16 @@ export default function BankPanel({
         loading={paying}
         onConfirm={payFine}
         onCancel={() => setFineToPay(null)}
+      />
+
+      <ConfirmDialog
+        open={payAll}
+        title="Pagar todas las multas"
+        description={`Se intentarán pagar ${pendingFines.length} multas por un total de ${centsToEuros(totalFinesCents)}. Si no te llega el saldo para todas, se pagarán las que puedas permitirte.`}
+        confirmLabel="Pagar todas"
+        loading={paying}
+        onConfirm={payAllFines}
+        onCancel={() => setPayAll(false)}
       />
     </div>
   );

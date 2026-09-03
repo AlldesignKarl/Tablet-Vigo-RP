@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Car } from 'lucide-react';
 import type { Database } from '@/types/database';
 import type { CitizenProfile } from '@/lib/data/citizen';
 
@@ -37,7 +38,12 @@ export default function SearchPlatePanel() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-white">🚘 Buscar matrícula</h1>
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200">
+          <Car className="h-5 w-5" strokeWidth={1.75} />
+        </span>
+        <h1 className="text-xl font-bold text-white">Buscar matrícula</h1>
+      </div>
 
       <form onSubmit={handleSearch} className="hud-panel flex flex-col gap-3 p-5 sm:flex-row">
         <input

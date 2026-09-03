@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Radio } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatDateTime } from '@/lib/format';
 import type { Database } from '@/types/database';
@@ -71,7 +72,9 @@ export default function RadioPanel({ initialMessages, callsign }: { initialMessa
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_240px]">
       <div className="hud-panel flex h-[60vh] flex-col p-4">
-        <h1 className="mb-3 text-lg font-bold text-white">📻 Radio policial · Canal General</h1>
+        <h1 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
+          <Radio className="h-5 w-5" strokeWidth={1.75} /> Radio policial · Canal General
+        </h1>
         <div className="flex-1 space-y-2 overflow-y-auto pr-1">
           {messages.length === 0 && <p className="text-sm text-slate-500">Sin mensajes todavía.</p>}
           {messages.map((m) => (

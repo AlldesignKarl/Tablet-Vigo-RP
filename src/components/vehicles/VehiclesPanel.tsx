@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Car } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { useToast } from '@/components/ui/ToastProvider';
 import type { Database } from '@/types/database';
@@ -41,7 +42,12 @@ export default function VehiclesPanel({ vehicles }: { vehicles: Vehicle[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">🚗 Vehículos</h1>
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200">
+            <Car className="h-5 w-5" strokeWidth={1.75} />
+          </span>
+          <h1 className="text-xl font-bold text-white">Vehículos</h1>
+        </div>
         <button
           onClick={() => setShowForm((v) => !v)}
           className="rounded-lg border border-accent-500/40 bg-accent-500/10 px-4 py-2 text-sm font-medium text-accent-400 transition hover:bg-accent-500/20"

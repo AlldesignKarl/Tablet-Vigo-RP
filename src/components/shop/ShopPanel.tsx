@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ShoppingBag, IdCard, ShieldAlert, Package, type LucideIcon } from 'lucide-react';
 import { centsToEuros, formatDate } from '@/lib/format';
 import { useToast } from '@/components/ui/ToastProvider';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -70,7 +71,9 @@ export default function ShopPanel({
     <div className="space-y-8">
       <div className="hud-panel flex flex-wrap items-center justify-between gap-3 border-accent-500/20 bg-gradient-to-r from-accent-500/10 via-transparent to-transparent p-5">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-500/15 text-2xl">🛒</span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-500/15 text-accent-400">
+            <ShoppingBag className="h-5 w-5" strokeWidth={1.75} />
+          </span>
           <div>
             <h1 className="text-xl font-bold text-white">Tienda</h1>
             <p className="text-xs text-slate-500">Licencias oficiales y equipamiento de rol</p>
@@ -83,7 +86,7 @@ export default function ShopPanel({
       </div>
 
       {generalLicenses.length > 0 && (
-        <ShopSection title="Licencias generales" icon="🪪" accent="accent">
+        <ShopSection title="Licencias generales" icon={IdCard} accent="accent">
           {generalLicenses.map((lt) => (
             <LicenseCard key={lt.id} lt={lt} owned={ownedMap.get(lt.id)} onBuy={() => setPending({ kind: 'license', item: lt })} />
           ))}
@@ -91,7 +94,7 @@ export default function ShopPanel({
       )}
 
       {weaponLicenses.length > 0 && (
-        <ShopSection title="Licencias de armas" icon="🔫" accent="danger">
+        <ShopSection title="Licencias de armas" icon={ShieldAlert} accent="danger">
           {weaponLicenses.map((lt) => (
             <LicenseCard key={lt.id} lt={lt} owned={ownedMap.get(lt.id)} onBuy={() => setPending({ kind: 'license', item: lt })} />
           ))}
@@ -99,7 +102,7 @@ export default function ShopPanel({
       )}
 
       {products.length > 0 && (
-        <ShopSection title="Equipamiento" icon="🎒" accent="police">
+        <ShopSection title="Equipamiento" icon={Package} accent="police">
           {products.map((p) => (
             <div key={p.id} className="hud-panel flex flex-col gap-3 p-5">
               <div className="flex items-center gap-3">
@@ -142,12 +145,12 @@ export default function ShopPanel({
 
 function ShopSection({
   title,
-  icon,
+  icon: Icon,
   accent,
   children,
 }: {
   title: string;
-  icon: string;
+  icon: LucideIcon;
   accent: 'accent' | 'danger' | 'police';
   children: React.ReactNode;
 }) {
@@ -156,7 +159,7 @@ function ShopSection({
     <section>
       <h2 className="mb-3 flex items-center gap-2 font-semibold text-white">
         <span className={`h-2 w-2 rounded-full ${dot}`} />
-        <span>{icon}</span> {title}
+        <Icon className="h-4 w-4" strokeWidth={1.75} /> {title}
       </h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
     </section>

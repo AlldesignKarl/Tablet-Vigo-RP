@@ -1,14 +1,15 @@
 import Link from 'next/link';
+import type { LucideIcon } from 'lucide-react';
 
 export default function DashboardCard({
   href,
-  icon,
+  icon: Icon,
   title,
   description,
   accent,
 }: {
   href: string;
-  icon: string;
+  icon: LucideIcon;
   title: string;
   description: string;
   accent?: boolean;
@@ -20,8 +21,8 @@ export default function DashboardCard({
         accent ? 'border-accent-500/30' : ''
       }`}
     >
-      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-xl">
-        {icon}
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200">
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
       </div>
       <div>
         <h3 className="font-semibold text-white">{title}</h3>

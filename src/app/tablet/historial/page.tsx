@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { formatDateTime, centsToEuros } from '@/lib/format';
+import { Scale } from 'lucide-react';
 
 interface TimelineEntry {
   id: string;
@@ -70,7 +71,12 @@ export default async function HistorialPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-white">⚖️ Historial</h1>
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200">
+          <Scale className="h-5 w-5" strokeWidth={1.75} />
+        </span>
+        <h1 className="text-xl font-bold text-white">Historial</h1>
+      </div>
 
       {entries.length === 0 ? (
         <p className="text-sm text-slate-500">Sin antecedentes registrados.</p>

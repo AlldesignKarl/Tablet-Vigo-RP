@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LayoutDashboard, Search, Car, Radio, type LucideIcon } from 'lucide-react';
 
-const ITEMS = [
-  { href: '/tablet/policia', label: 'Panel', icon: '📊' },
-  { href: '/tablet/policia/buscar-persona', label: 'Buscar persona', icon: '🔎' },
-  { href: '/tablet/policia/buscar-matricula', label: 'Buscar matrícula', icon: '🚘' },
-  { href: '/tablet/policia/radio', label: 'Radio', icon: '📻' },
+const ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: '/tablet/policia', label: 'Panel', icon: LayoutDashboard },
+  { href: '/tablet/policia/buscar-persona', label: 'Buscar persona', icon: Search },
+  { href: '/tablet/policia/buscar-matricula', label: 'Buscar matrícula', icon: Car },
+  { href: '/tablet/policia/radio', label: 'Radio', icon: Radio },
 ];
 
 export default function PoliceSubNav({ callsign, rank }: { callsign?: string; rank?: string }) {
@@ -17,6 +18,7 @@ export default function PoliceSubNav({ callsign, rank }: { callsign?: string; ra
       <div className="flex flex-wrap gap-1">
         {ITEMS.map((item) => {
           const active = item.href === '/tablet/policia' ? pathname === item.href : pathname.startsWith(item.href);
+          const Icon = item.icon;
           return (
             <Link
               key={item.href}
@@ -27,7 +29,7 @@ export default function PoliceSubNav({ callsign, rank }: { callsign?: string; ra
                   : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
-              <span>{item.icon}</span>
+              <Icon className="h-4 w-4" strokeWidth={1.75} />
               {item.label}
             </Link>
           );

@@ -3,11 +3,23 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import {
+  Home,
+  IdCard,
+  Landmark,
+  Car,
+  ShoppingBag,
+  Package,
+  Scale,
+  Shield,
+  Settings,
+  type LucideIcon,
+} from 'lucide-react';
 
 interface NavItem {
   href: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   show: boolean;
 }
 
@@ -29,19 +41,19 @@ export default function TabletShell({
   // acceso y comprueba los permisos en el servidor. Ocultar el botón NO
   // es una medida de seguridad real, así que no lo usamos como tal.
   const navItems: NavItem[] = [
-    { href: '/tablet', label: 'Inicio', icon: '🏠', show: true },
-    { href: '/tablet/dni', label: 'DNI', icon: '🪪', show: true },
-    { href: '/tablet/banco', label: 'Banco', icon: '🏦', show: true },
-    { href: '/tablet/vehiculos', label: 'Vehículos', icon: '🚗', show: true },
-    { href: '/tablet/tienda', label: 'Tienda', icon: '🛒', show: true },
-    { href: '/tablet/historial', label: 'Historial', icon: '⚖️', show: true },
-    { href: '/tablet/policia', label: 'Policía', icon: '👮', show: true },
-    { href: '/admin', label: 'Admin', icon: '⚙️', show: isAdmin },
+    { href: '/tablet/dni', label: 'DNI', icon: IdCard, show: true },
+    { href: '/tablet/banco', label: 'Banco', icon: Landmark, show: true },
+    { href: '/tablet/vehiculos', label: 'Vehículos', icon: Car, show: true },
+    { href: '/tablet/tienda', label: 'Tienda', icon: ShoppingBag, show: true },
+    { href: '/tablet/inventario', label: 'Inventario', icon: Package, show: true },
+    { href: '/tablet/historial', label: 'Historial', icon: Scale, show: true },
+    { href: '/tablet/policia', label: 'Policía', icon: Shield, show: true },
+    { href: '/admin', label: 'Admin', icon: Settings, show: isAdmin },
   ];
 
   return (
     <div className="grid-overlay min-h-dvh bg-base-950">
-      <div className="mx-auto flex min-h-dvh max-w-6xl flex-col p-2 sm:p-4">
+      <div className="mx-auto flex min-h-dvh max-w-6xl gap-2 p-2 sm:gap-4 sm:p-4">
         <div className="hud-panel scan-overlay flex flex-1 flex-col overflow-hidden border-2 border-white/10 sm:rounded-[2rem]">
           <header className="relative flex items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-accent-500/[0.06] via-transparent to-transparent px-4 py-3 sm:px-6">
             <div className="flex items-center gap-2.5">
@@ -69,30 +81,47 @@ export default function TabletShell({
             </div>
           </header>
 
-          <nav className="scrollbar-none flex gap-1 overflow-x-auto border-b border-white/10 bg-white/[0.015] px-2 py-2 sm:px-4">
-            {navItems
-              .filter((n) => n.show)
-              .map((item) => {
-                const active = item.href === '/tablet' ? pathname === '/tablet' : pathname.startsWith(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`relative flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition ${
-                      active
-                        ? 'bg-accent-500/15 text-accent-400 shadow-[inset_0_-2px_0_theme(colors.accent.400)]'
-                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                    }`}
-                  >
-                    <span>{item.icon}</span>
-                    {item.label}
-                  </Link>
-                );
-              })}
-          </nav>
-
           <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
         </div>
+
+        <nav className="hud-panel scrollbar-none flex w-14 shrink-0 flex-col items-center gap-1 overflow-y-auto border-2 border-white/10 py-4 sm:w-16 sm:rounded-[2rem]">
+          {navItems
+            .filter((n) => n.show)
+            .map((item) => {
+              const active = pathname.startsWith(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={item.label}
+                  className={`no-glow flex h-11 w-11 items-center justify-center rounded-xl transition ${
+                    active
+                      ? 'bg-accent-500/15 text-accent-400 shadow-[0_0_14px_rgba(59,130,246,0.3)]'
+                      : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" strokeWidth={1.75} />
+                  <span className="sr-only">{item.label}</span>
+                </Link>
+              );
+            })}
+
+          <div className="mt-auto pt-2">
+            <Link
+              href="/tablet"
+              title="Inicio"
+              className={`no-glow flex h-11 w-11 items-center justify-center rounded-xl border-t border-white/10 pt-1 transition ${
+                pathname === '/tablet'
+                  ? 'text-accent-400'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <Home className="h-5 w-5" strokeWidth={1.75} />
+              <span className="sr-only">Inicio</span>
+            </Link>
+          </div>
+        </nav>
       </div>
     </div>
   );
