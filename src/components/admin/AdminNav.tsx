@@ -18,15 +18,17 @@ const ITEMS = [
 export default function AdminNav() {
   const pathname = usePathname();
   return (
-    <nav className="flex flex-wrap gap-1 border-b border-white/10 pb-3">
+    <nav className="scrollbar-none flex gap-1 overflow-x-auto">
       {ITEMS.map((item) => {
         const active = item.href === '/admin' ? pathname === item.href : pathname.startsWith(item.href);
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`rounded-lg px-3 py-2 text-xs font-medium transition ${
-              active ? 'bg-accent-500/15 text-accent-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+            className={`shrink-0 rounded-lg px-3 py-2 text-xs font-medium transition ${
+              active
+                ? 'bg-accent-500/15 text-accent-400 shadow-[inset_0_-2px_0_theme(colors.accent.400)]'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
             }`}
           >
             {item.label}
