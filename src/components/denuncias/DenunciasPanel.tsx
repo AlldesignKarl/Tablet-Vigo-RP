@@ -27,6 +27,7 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
   const { push } = useToast();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
   const [accused, setAccused] = useState<SearchResult | null>(null);
   const [reason, setReason] = useState('');
@@ -34,8 +35,12 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (query.trim().length < 2) return;
+    if (query.trim().length < 2) {
+      push({ kind: 'error', title: 'Escribe al menos 2 letras para buscar' });
+      return;
+    }
     setSearching(true);
+    setSearched(true);
     try {
       const res = await fetch('/api/denuncias/search-citizen', {
         method: 'POST',
@@ -43,7 +48,15 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
         body: JSON.stringify({ query, by: 'nombre' }),
       });
       const json = await res.json();
-      setResults(res.ok && json.ok ? json.data : []);
+      if (!res.ok || !json.ok) {
+        push({ kind: 'error', title: 'No se pudo buscar', message: json.error });
+        setResults([]);
+        return;
+      }
+      setResults(json.data ?? []);
+    } catch {
+      push({ kind: 'error', title: 'No se pudo conectar con el servidor', message: 'Revisa tu conexión e inténtalo de nuevo.' });
+      setResults([]);
     } finally {
       setSearching(false);
     }
@@ -105,11 +118,11 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
                 className="flex items-center gap-1.5 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:opacity-50"
               >
                 <Search className="h-4 w-4" strokeWidth={1.75} />
-                Buscar
+                {searching ? 'Buscando…' : 'Buscar'}
               </button>
             </form>
 
-            {results.length > 0 && (
+            {results.length > 0 ? (
               <div className="space-y-1.5">
                 {results.map((r) => (
                   <button
@@ -127,6 +140,9 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
                   </button>
                 ))}
               </div>
+            ) : (
+              searched &&
+              !searching && <p className="text-sm text-slate-500">No se ha encontrado a nadie con ese nombre.</p>
             )}
           </>
         ) : (

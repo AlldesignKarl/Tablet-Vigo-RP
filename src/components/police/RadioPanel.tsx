@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Radio } from 'lucide-react';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+import { Radio, Car, Siren, Building2, Mic, Users, PhoneCall } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatDateTime } from '@/lib/format';
 import type { Database } from '@/types/database';
@@ -12,48 +13,82 @@ interface PresenceState {
   onlineAt: string;
 }
 
-export default function RadioPanel({ initialMessages, callsign }: { initialMessages: RadioMessage[]; callsign: string }) {
-  const [messages, setMessages] = useState<RadioMessage[]>(initialMessages);
+const CHANNELS = [
+  { code: 'general', label: 'General', icon: Radio },
+  { code: 'trafico', label: 'Tráfico', icon: Car },
+  { code: 'emergencias', label: 'Emergencias', icon: Siren },
+  { code: 'central', label: 'Central', icon: Building2 },
+] as const;
+
+const EMERGENCY_PREFIX = '🚨 LLAMADA DE EMERGENCIA:';
+
+export default function RadioPanel({ callsign }: { callsign: string }) {
+  const [channel, setChannel] = useState<(typeof CHANNELS)[number]['code']>('general');
+  const [messages, setMessages] = useState<RadioMessage[]>([]);
   const [online, setOnline] = useState<PresenceState[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [transmitting, setTransmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
   useEffect(() => {
-    const channel = supabase
-      .channel('radio-general', { config: { presence: { key: crypto.randomUUID() } } })
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'radio_messages', filter: 'channel=eq.general' },
-        (payload) => {
-          setMessages((prev) => [...prev, payload.new as RadioMessage]);
-        },
-      )
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState<PresenceState>();
-        setOnline(Object.values(state).flat());
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({ callsign, onlineAt: new Date().toISOString() });
-        }
-      });
+    let cancelled = false;
+    let rt: RealtimeChannel | null = null;
+
+    async function join() {
+      setLoading(true);
+      setOnline([]);
+
+      const { data } = await supabase
+        .from('radio_messages')
+        .select('*')
+        .eq('channel', channel)
+        .order('created_at', { ascending: false })
+        .limit(60);
+      if (cancelled) return;
+      setMessages((data ?? []).reverse());
+      setLoading(false);
+
+      rt = supabase
+        .channel(`radio-${channel}`, { config: { presence: { key: crypto.randomUUID() } } })
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'radio_messages', filter: `channel=eq.${channel}` },
+          (payload) => {
+            setMessages((prev) => [...prev, payload.new as RadioMessage]);
+          },
+        )
+        .on('presence', { event: 'sync' }, () => {
+          const state = rt!.presenceState<PresenceState>();
+          setOnline(Object.values(state).flat());
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await rt!.track({ callsign, onlineAt: new Date().toISOString() });
+          }
+        });
+    }
+
+    join();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (rt) supabase.removeChannel(rt);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callsign]);
+  }, [channel, callsign]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  async function send(e: React.FormEvent) {
-    e.preventDefault();
-    if (!text.trim()) return;
+  async function transmit(message: string) {
+    const trimmed = message.trim();
+    if (!trimmed) return;
     setSending(true);
+    setTransmitting(true);
     try {
       // Insert directo: RLS exige sender_id = auth.uid() y que el
       // usuario esté autorizado como policía, así que no hace falta un
@@ -62,33 +97,122 @@ export default function RadioPanel({ initialMessages, callsign }: { initialMessa
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      await supabase.from('radio_messages').insert({ sender_id: user.id, callsign, channel: 'general', message: text.trim() });
+      await supabase.from('radio_messages').insert({ sender_id: user.id, callsign, channel, message: trimmed });
       setText('');
     } finally {
       setSending(false);
+      setTimeout(() => setTransmitting(false), 600);
     }
   }
 
+  function send(e: React.FormEvent) {
+    e.preventDefault();
+    transmit(text);
+  }
+
+  function callEmergency() {
+    transmit(`${EMERGENCY_PREFIX} ${callsign} solicita refuerzos inmediatos, cambio.`);
+  }
+
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_240px]">
-      <div className="hud-panel flex h-[60vh] flex-col p-4">
-        <h1 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
-          <Radio className="h-5 w-5" strokeWidth={1.75} /> Radio policial · Canal General
-        </h1>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[220px_1fr]">
+      <div className="space-y-4">
+        <div className="hud-panel p-3">
+          <h2 className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Canales</h2>
+          <div className="space-y-1">
+            {CHANNELS.map((c) => {
+              const Icon = c.icon;
+              const active = c.code === channel;
+              return (
+                <button
+                  key={c.code}
+                  onClick={() => setChannel(c.code)}
+                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    active
+                      ? 'bg-police-500/20 text-police-glow shadow-[0_0_12px_rgba(59,130,246,0.3)]'
+                      : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" strokeWidth={1.75} />
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="hud-panel p-3">
+          <h2 className="mb-2 flex items-center gap-1.5 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            <Users className="h-3 w-3" strokeWidth={2} />
+            En línea ({online.length})
+          </h2>
+          <div className="space-y-1.5 px-1">
+            {online.map((o, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success-500 shadow-[0_0_6px_theme(colors.success.500)]" />
+                <span className="font-mono font-medium text-white">{o.callsign}</span>
+              </div>
+            ))}
+            {online.length === 0 && <p className="text-xs text-slate-500">Nadie más en este canal.</p>}
+          </div>
+        </div>
+      </div>
+
+      <div className="hud-panel scan-overlay flex h-[65vh] flex-col p-4">
+        <div className="mb-3 flex items-center justify-between gap-2 border-b border-white/10 pb-3">
+          <h1 className="flex items-center gap-2 text-lg font-bold text-white">
+            <Radio className="h-5 w-5 text-police-glow" strokeWidth={1.75} />
+            {CHANNELS.find((c) => c.code === channel)?.label}
+          </h1>
+          <span className="flex items-center gap-1.5 rounded-lg border border-police-500/40 bg-police-500/10 px-3 py-1.5 font-mono text-xs font-bold text-police-glow">
+            <span className="h-1.5 w-1.5 rounded-full bg-police-glow" />
+            {callsign}
+          </span>
+        </div>
+
         <div className="flex-1 space-y-2 overflow-y-auto pr-1">
-          {messages.length === 0 && <p className="text-sm text-slate-500">Sin mensajes todavía.</p>}
-          {messages.map((m) => (
-            <div key={m.id} className="flex items-start gap-2 text-sm">
-              <span className="shrink-0 rounded bg-police-500/20 px-1.5 py-0.5 font-mono text-xs font-bold text-police-glow">
-                {m.callsign}
-              </span>
-              <p className="min-w-0 flex-1 break-words text-slate-200">{m.message}</p>
-              <span className="shrink-0 text-[10px] text-slate-500">{formatDateTime(m.created_at)}</span>
-            </div>
-          ))}
+          {loading ? (
+            <p className="text-sm text-slate-500">Sintonizando canal…</p>
+          ) : messages.length === 0 ? (
+            <p className="text-sm text-slate-500">Sin transmisiones todavía en este canal.</p>
+          ) : (
+            messages.map((m) => {
+              const isEmergency = m.message.startsWith(EMERGENCY_PREFIX);
+              return (
+                <div
+                  key={m.id}
+                  className={`flex items-start gap-2 rounded-lg px-2 py-1.5 text-sm ${
+                    isEmergency ? 'border border-danger-500/40 bg-danger-500/10' : ''
+                  }`}
+                >
+                  <span
+                    className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-xs font-bold ${
+                      isEmergency ? 'bg-danger-500/20 text-danger-500' : 'bg-police-500/20 text-police-glow'
+                    }`}
+                  >
+                    {m.callsign}
+                  </span>
+                  <p className={`min-w-0 flex-1 break-words ${isEmergency ? 'font-semibold text-danger-500' : 'text-slate-200'}`}>
+                    {m.message}
+                  </p>
+                  <span className="shrink-0 text-[10px] text-slate-500">{formatDateTime(m.created_at)}</span>
+                </div>
+              );
+            })
+          )}
           <div ref={bottomRef} />
         </div>
-        <form onSubmit={send} className="mt-3 flex gap-2">
+
+        <form onSubmit={send} className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={callEmergency}
+            disabled={sending}
+            title="Llamada de emergencia"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-danger-500/40 bg-danger-500/10 text-danger-500 transition hover:bg-danger-500/20 disabled:opacity-50"
+          >
+            <PhoneCall className="h-5 w-5" strokeWidth={1.75} />
+          </button>
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -98,25 +222,15 @@ export default function RadioPanel({ initialMessages, callsign }: { initialMessa
           />
           <button
             type="submit"
-            disabled={sending}
-            className="rounded-lg bg-police-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-police-500/80 disabled:opacity-50"
+            disabled={sending || !text.trim()}
+            className={`flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white transition disabled:opacity-50 ${
+              transmitting ? 'animate-pulse bg-police-400' : 'bg-police-500 hover:bg-police-500/80'
+            }`}
           >
-            Enviar
+            <Mic className="h-4 w-4" strokeWidth={1.75} />
+            {transmitting ? 'Transmitiendo…' : 'Hablar'}
           </button>
         </form>
-      </div>
-
-      <div className="hud-panel p-4">
-        <h2 className="mb-3 text-sm font-semibold text-white">En línea ({online.length})</h2>
-        <div className="space-y-2">
-          {online.map((o, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm">
-              <span className="h-2 w-2 rounded-full bg-success-500" />
-              <span className="font-mono font-medium text-white">{o.callsign}</span>
-            </div>
-          ))}
-          {online.length === 0 && <p className="text-xs text-slate-500">Nadie más conectado.</p>}
-        </div>
       </div>
     </div>
   );
