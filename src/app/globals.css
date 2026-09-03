@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: 'Segoe UI', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-base-950 text-slate-100 antialiased;
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(59, 130, 246, 0.12), transparent 45%),
+    radial-gradient(circle at 90% 10%, rgba(59, 130, 246, 0.08), transparent 40%);
+  min-height: 100dvh;
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(94, 177, 255, 0.25);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hud-panel {
+  @apply relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm shadow-hud;
+}
+
+.hud-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(94, 177, 255, 0.25), transparent 60%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.grid-overlay {
+  background-image: linear-gradient(rgba(94, 177, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(94, 177, 255, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.flip-scene {
+  perspective: 1600px;
+}
+
+.flip-card {
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.flip-card.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-face-back {
+  transform: rotateY(180deg);
+}
