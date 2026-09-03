@@ -124,8 +124,10 @@ persiste en Supabase.
 
 El endpoint `GET /api/cron/pay-salaries` paga a **todos** los ciudadanos
 cuyo sueldo esté vencido, de forma atómica (nadie puede cobrar dos veces).
-`vercel.json` ya define un cron de Vercel que lo llama cada hora. Si
-despliegas en otra plataforma, configura un cron externo (por ejemplo
+`vercel.json` ya define un cron de Vercel que lo llama **una vez al día**
+(el plan gratuito/Hobby de Vercel limita los cron jobs a una ejecución
+diaria). Si despliegas en otra plataforma, o quieres más frecuencia,
+configura un cron externo gratuito (por ejemplo
 [cron-job.org](https://cron-job.org)) que haga:
 
 ```
