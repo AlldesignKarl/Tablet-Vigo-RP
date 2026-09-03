@@ -2,7 +2,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getCitizenProfile } from '@/lib/data/citizen';
 import DashboardCard from '@/components/tablet/DashboardCard';
 import { centsToEuros } from '@/lib/format';
-import { IdCard, Landmark, Car, ShoppingBag, Package, Scale, Shield, Siren, Gavel, type LucideIcon } from 'lucide-react';
+import { IdCard, Landmark, Car, ShoppingBag, Package, Scale, Shield, Siren, Gavel, FileWarning, type LucideIcon } from 'lucide-react';
 
 export default async function TabletHomePage() {
   const supabase = createServerSupabaseClient();
@@ -47,6 +47,7 @@ export default async function TabletHomePage() {
         <DashboardCard href="/tablet/vehiculos" icon={Car} title="Vehículos" description="Registra y consulta tus vehículos." />
         <DashboardCard href="/tablet/tienda" icon={ShoppingBag} title="Tienda y licencias" description="Compra licencias oficiales." />
         <DashboardCard href="/tablet/inventario" icon={Package} title="Inventario" description="Objetos y equipamiento que has comprado." />
+        <DashboardCard href="/tablet/denuncias" icon={FileWarning} title="Denuncias" description="Pon una denuncia contra otro ciudadano." />
         <DashboardCard href="/tablet/historial" icon={Scale} title="Historial" description="Arrestos, multas e incautaciones." />
         <DashboardCard
           href="/tablet/policia"

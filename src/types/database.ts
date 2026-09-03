@@ -139,6 +139,21 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      complaints: {
+        Row: {
+          id: string;
+          reporter_id: string;
+          accused_id: string;
+          reason: string;
+          status: 'pendiente' | 'en_inspeccion' | 'cerrada';
+          resolved_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       vehicles: {
         Row: {
           id: string;
@@ -329,6 +344,25 @@ export interface Database {
         };
         Relationships: [];
       };
+      complaints_view: {
+        Row: {
+          id: string;
+          reason: string;
+          status: 'pendiente' | 'en_inspeccion' | 'cerrada';
+          created_at: string;
+          updated_at: string;
+          reporter_id: string;
+          reporter_first_name: string;
+          reporter_last_name: string;
+          reporter_dni_number: string;
+          accused_id: string;
+          accused_first_name: string;
+          accused_last_name: string;
+          accused_dni_number: string;
+          resolved_by: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       claim_salary: {
@@ -378,6 +412,18 @@ export interface Database {
       admin_adjust_balance: { Args: { p_profile_id: string; p_amount_cents: number; p_reason: string }; Returns: undefined };
       admin_set_config: { Args: { p_key: string; p_value: Record<string, unknown> }; Returns: undefined };
       check_rate_limit: { Args: { p_key: string; p_max_count: number; p_window_seconds: number }; Returns: boolean };
+      search_citizens_public: {
+        Args: { p_query: string; p_by: string };
+        Returns: { profile_id: string; first_name: string; last_name: string; dni_number: string; roblox_avatar_url: string | null }[];
+      };
+      file_complaint: {
+        Args: { p_accused_id: string; p_reason: string };
+        Returns: { success: boolean; message: string; complaint_id: string | null }[];
+      };
+      police_update_complaint_status: {
+        Args: { p_complaint_id: string; p_status: string };
+        Returns: { success: boolean; message: string }[];
+      };
     };
     Enums: {
       app_role: AppRole;

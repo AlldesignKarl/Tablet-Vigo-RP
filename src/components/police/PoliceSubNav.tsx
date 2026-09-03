@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Search, Car, Radio, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Search, Car, Radio, FileWarning, type LucideIcon } from 'lucide-react';
 
 const ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/tablet/policia', label: 'Panel', icon: LayoutDashboard },
   { href: '/tablet/policia/buscar-persona', label: 'Buscar persona', icon: Search },
   { href: '/tablet/policia/buscar-matricula', label: 'Buscar matrícula', icon: Car },
+  { href: '/tablet/policia/denuncias', label: 'Denuncias', icon: FileWarning },
   { href: '/tablet/policia/radio', label: 'Radio', icon: Radio },
 ];
 

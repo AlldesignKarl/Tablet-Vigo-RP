@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { Shield, Users, Car, ShieldAlert, Siren, Search } from 'lucide-react';
+import { Shield, Users, Car, ShieldAlert, Siren, Search, FileWarning } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export default async function PoliceDashboardPage() {
@@ -12,6 +12,10 @@ export default async function PoliceDashboardPage() {
     .eq('active', true)
     .order('created_at', { ascending: false })
     .limit(10);
+  const { count: pendingComplaints } = await supabase
+    .from('complaints_view')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pendiente');
 
   return (
     <div className="space-y-6">
@@ -25,14 +29,15 @@ export default async function PoliceDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <StatCard icon={Users} label="Personas registradas" value={stats?.total_citizens ?? 0} />
         <StatCard icon={Car} label="Vehículos registrados" value={stats?.total_vehicles ?? 0} />
         <StatCard icon={ShieldAlert} label="Licencias de armas" value={stats?.total_weapon_licenses ?? 0} />
+        <StatCard icon={FileWarning} label="Denuncias pendientes" value={pendingComplaints ?? 0} danger />
         <StatCard icon={Siren} label="En busca y captura" value={stats?.total_wanted ?? 0} danger />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Link
           href="/tablet/policia/buscar-persona"
           className="hud-panel flex items-center gap-3 border-l-2 border-l-police-500/50 p-5 transition hover:border-police-500/50"
@@ -55,6 +60,18 @@ export default async function PoliceDashboardPage() {
           <div>
             <p className="font-semibold text-white">Buscar matrícula</p>
             <p className="text-xs text-slate-400">Consulta vehículos registrados</p>
+          </div>
+        </Link>
+        <Link
+          href="/tablet/policia/denuncias"
+          className="hud-panel flex items-center gap-3 border-l-2 border-l-police-500/50 p-5 transition hover:border-police-500/50"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-police-500/10 text-police-glow">
+            <FileWarning className="h-5 w-5" strokeWidth={1.75} />
+          </span>
+          <div>
+            <p className="font-semibold text-white">Denuncias</p>
+            <p className="text-xs text-slate-400">Gestiona las denuncias de ciudadanos</p>
           </div>
         </Link>
       </div>
