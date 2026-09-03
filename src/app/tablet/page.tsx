@@ -2,7 +2,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getCitizenProfile } from '@/lib/data/citizen';
 import DashboardCard from '@/components/tablet/DashboardCard';
 import { centsToEuros } from '@/lib/format';
-import { IdCard, Landmark, Car, ShoppingBag, Package, Scale, Shield, Siren } from 'lucide-react';
+import { IdCard, Landmark, Car, ShoppingBag, Package, Scale, Shield, Siren, Gavel, type LucideIcon } from 'lucide-react';
 
 export default async function TabletHomePage() {
   const supabase = createServerSupabaseClient();
@@ -30,10 +30,15 @@ export default async function TabletHomePage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <MiniStat label="Saldo" value={centsToEuros(profile?.balance_cents ?? 0)} />
-        <MiniStat label="Puntos carnet" value={String(profile?.license_points ?? '—')} />
-        <MiniStat label="Multas pendientes" value={centsToEuros(profile?.fines_pending_amount_cents ?? 0)} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <MiniStat icon={Landmark} label="Saldo" value={centsToEuros(profile?.balance_cents ?? 0)} />
+        <MiniStat icon={IdCard} label="Puntos carnet" value={String(profile?.license_points ?? '—')} />
+        <MiniStat
+          icon={Gavel}
+          label="Multas pendientes"
+          value={centsToEuros(profile?.fines_pending_amount_cents ?? 0)}
+          alert={(profile?.fines_pending_amount_cents ?? 0) > 0}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -55,11 +60,30 @@ export default async function TabletHomePage() {
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function MiniStat({
+  icon: Icon,
+  label,
+  value,
+  alert,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  alert?: boolean;
+}) {
   return (
-    <div className="hud-panel p-4">
-      <p className="text-[11px] uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-bold text-white">{value}</p>
+    <div className={`hud-panel flex items-center justify-between gap-3 p-4 ${alert ? 'border-danger-500/40 bg-danger-500/[0.04]' : ''}`}>
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-slate-500">{label}</p>
+        <p className={`mt-1 text-xl font-bold ${alert ? 'text-danger-500' : 'text-white'}`}>{value}</p>
+      </div>
+      <span
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
+          alert ? 'border-danger-500/40 bg-danger-500/10 text-danger-500' : 'border-white/10 bg-white/5 text-slate-300'
+        }`}
+      >
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
+      </span>
     </div>
   );
 }

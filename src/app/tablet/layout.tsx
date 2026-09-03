@@ -26,6 +26,7 @@ export default async function TabletLayout({ children }: { children: React.React
   return (
     <TabletShell
       citizenName={`${profile.first_name} ${profile.last_name}`}
+      dniNumber={profile.dni_number}
       avatarUrl={profile.roblox_avatar_url}
       isAdmin={isAdmin}
     >

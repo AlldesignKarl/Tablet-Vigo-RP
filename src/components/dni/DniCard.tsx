@@ -58,7 +58,7 @@ export default function DniCard({ dni }: { dni: DniCardData }) {
               </div>
 
               <div className="flex flex-1 gap-3 p-3 sm:gap-4 sm:p-4">
-                <div className="relative h-full w-[30%] shrink-0 overflow-hidden rounded-sm border border-black/20 bg-white">
+                <div className="relative h-full w-[23%] shrink-0 overflow-hidden rounded-sm border border-black/20 bg-white">
                   {dni.robloxAvatarUrl ? (
                     <Image src={dni.robloxAvatarUrl} alt={dni.robloxUsername} fill className="object-cover" unoptimized />
                   ) : (
