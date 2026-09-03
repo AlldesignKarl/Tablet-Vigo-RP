@@ -5,6 +5,8 @@
 --  2) Añade el catálogo de empleos/rangos por sección (CNP, GC, GEO, UIP,
 --     UPR, Paramédico, Bombero + jefaturas) y permite al admin asignar el
 --     empleo de cada ciudadano desde /admin/usuarios.
+--  3) Activa Realtime en wanted_persons para que el efecto de luces
+--     azules de "busca y captura" en la tablet aparezca al instante.
 -- Es idempotente: se puede ejecutar varias veces sin problema.
 -- =====================================================================
 
@@ -141,3 +143,17 @@ begin
   perform public.write_audit_log(auth.uid(), 'admin_cambio_empleo', p_profile_id::text, jsonb_build_object('job_id', p_job_id));
 end;
 $$;
+
+-- Archivo: supabase/migrations/0015_realtime_wanted.sql
+-- =====================================================================
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+       where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'wanted_persons'
+     )
+  then
+    alter publication supabase_realtime add table public.wanted_persons;
+  end if;
+end $$;
