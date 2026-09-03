@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 :root {
-  --font-display: 'Segoe UI', 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 }
 
@@ -14,8 +13,9 @@ html {
 body {
   @apply bg-base-950 text-slate-100 antialiased;
   background-image:
-    radial-gradient(circle at 20% 0%, rgba(59, 130, 246, 0.12), transparent 45%),
-    radial-gradient(circle at 90% 10%, rgba(59, 130, 246, 0.08), transparent 40%);
+    radial-gradient(circle at 15% -10%, rgba(59, 130, 246, 0.16), transparent 45%),
+    radial-gradient(circle at 100% 0%, rgba(94, 177, 255, 0.1), transparent 40%),
+    radial-gradient(circle at 50% 110%, rgba(59, 130, 246, 0.08), transparent 45%);
   min-height: 100dvh;
 }
 
@@ -36,7 +36,8 @@ body {
 }
 
 .hud-panel {
-  @apply relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm shadow-hud;
+  @apply relative rounded-2xl border border-white/10 bg-white/[0.035] backdrop-blur-md shadow-hud;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
 }
 
 .hud-panel::before {
@@ -45,7 +46,7 @@ body {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(94, 177, 255, 0.25), transparent 60%);
+  background: linear-gradient(135deg, rgba(94, 177, 255, 0.35), rgba(94, 177, 255, 0.02) 45%, transparent 65%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -53,9 +54,35 @@ body {
 }
 
 .grid-overlay {
-  background-image: linear-gradient(rgba(94, 177, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(94, 177, 255, 0.05) 1px, transparent 1px);
-  background-size: 32px 32px;
+  background-image: linear-gradient(rgba(94, 177, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(94, 177, 255, 0.06) 1px, transparent 1px);
+  background-size: 36px 36px;
+  background-position: center;
+}
+
+/* Línea de escaneo sutil que recorre la interfaz de arriba a abajo, para
+   reforzar la sensación de "terminal tecnológica" sin distraer. */
+.scan-overlay {
+  position: relative;
+  overflow: hidden;
+}
+.scan-overlay::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(180deg, transparent, rgba(94, 177, 255, 0.06), transparent);
+  animation: scan 7s linear infinite;
+  pointer-events: none;
+}
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(220%); }
+}
+
+.text-glow {
+  text-shadow: 0 0 16px rgba(94, 177, 255, 0.5);
 }
 
 .flip-scene {
@@ -84,12 +111,17 @@ body {
    la tablet, para dar una sensación consistente de "interfaz táctil". */
 button:not(:disabled):not(.no-glow),
 a[href]:not(.no-glow) {
-  transition: box-shadow 150ms ease, filter 150ms ease;
+  transition: box-shadow 150ms ease, filter 150ms ease, transform 150ms ease;
 }
 
 button:not(:disabled):not(.no-glow):hover,
 a[href]:not(.no-glow):hover {
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.65), 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+button:not(:disabled):not(.no-glow):active,
+a[href]:not(.no-glow):active {
+  transform: scale(0.98);
 }
 
 button:not(:disabled):not(.no-glow):focus-visible,
@@ -104,4 +136,9 @@ a[href]:not(.no-glow):focus-visible {
   40% { transform: translateX(6px); }
   60% { transform: translateX(-4px); }
   80% { transform: translateX(4px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }

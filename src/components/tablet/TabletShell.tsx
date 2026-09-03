@@ -42,13 +42,15 @@ export default function TabletShell({
   return (
     <div className="grid-overlay min-h-dvh bg-base-950">
       <div className="mx-auto flex min-h-dvh max-w-6xl flex-col p-2 sm:p-4">
-        <div className="hud-panel flex flex-1 flex-col overflow-hidden border-2 border-white/10 sm:rounded-[2rem]">
-          <header className="flex items-center justify-between gap-3 border-b border-white/10 bg-white/[0.02] px-4 py-3 sm:px-6">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🛡️</span>
+        <div className="hud-panel scan-overlay flex flex-1 flex-col overflow-hidden border-2 border-white/10 sm:rounded-[2rem]">
+          <header className="relative flex items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-accent-500/[0.06] via-transparent to-transparent px-4 py-3 sm:px-6">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-accent-500/30 bg-accent-500/10 text-lg shadow-[0_0_16px_rgba(59,130,246,0.25)]">
+                🛡️
+              </span>
               <div>
-                <p className="font-display text-xs font-bold tracking-[0.25em] text-accent-400">VIGO RP</p>
-                <p className="hidden text-[10px] text-slate-500 sm:block">Sistema administrativo</p>
+                <p className="font-display text-glow text-xs font-extrabold tracking-[0.3em] text-accent-400">VIGO RP</p>
+                <p className="hidden text-[10px] uppercase tracking-wider text-slate-500 sm:block">Sistema administrativo</p>
               </div>
             </div>
 
@@ -57,7 +59,7 @@ export default function TabletShell({
                 <p className="text-sm font-medium text-white">{citizenName}</p>
                 <p className="text-[10px] text-slate-500">Ciudadano de Vigo RP</p>
               </div>
-              <div className="relative h-9 w-9 overflow-hidden rounded-full border border-white/20 bg-base-700">
+              <div className="relative h-9 w-9 overflow-hidden rounded-full border border-accent-500/40 bg-base-700 shadow-[0_0_12px_rgba(59,130,246,0.3)]">
                 {avatarUrl ? (
                   <Image src={avatarUrl} alt={citizenName} fill className="object-cover" unoptimized />
                 ) : (
@@ -76,9 +78,9 @@ export default function TabletShell({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition ${
+                    className={`relative flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition ${
                       active
-                        ? 'bg-accent-500/15 text-accent-400'
+                        ? 'bg-accent-500/15 text-accent-400 shadow-[inset_0_-2px_0_theme(colors.accent.400)]'
                         : 'text-slate-400 hover:bg-white/5 hover:text-white'
                     }`}
                   >

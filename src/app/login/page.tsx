@@ -69,11 +69,12 @@ function LoginContent() {
   }
 
   return (
-    <div className="hud-panel w-full max-w-sm p-8 text-center">
-      <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl border border-accent-500/40 bg-accent-500/10 text-2xl">
+    <div className="hud-panel scan-overlay w-full max-w-sm p-8 text-center">
+      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-accent-500/40 bg-accent-500/10 text-3xl shadow-[0_0_30px_rgba(59,130,246,0.35)]">
         🛡️
       </div>
-      <h1 className="font-display text-xl font-bold tracking-wide text-white">Acceso a la tablet</h1>
+      <p className="font-display text-glow text-[11px] font-extrabold tracking-[0.4em] text-accent-400">VIGO RP</p>
+      <h1 className="mt-2 font-display text-xl font-bold tracking-wide text-white">Acceso a la tablet</h1>
       <p className="mt-2 text-sm text-slate-400">
         Entra en la tablet de Vigo RP. Si es tu primera vez, se te pedirá crear tu DNI a continuación.
       </p>
@@ -81,7 +82,7 @@ function LoginContent() {
       <button
         onClick={enter}
         disabled={loading}
-        className="mt-8 w-full rounded-xl bg-accent-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:opacity-60"
+        className="mt-8 w-full rounded-xl bg-gradient-to-r from-accent-600 to-accent-500 px-5 py-3.5 text-sm font-bold uppercase tracking-wide text-white shadow-[0_0_24px_rgba(59,130,246,0.4)] transition hover:from-accent-500 hover:to-accent-400 disabled:opacity-60 disabled:shadow-none"
       >
         {loading ? 'Entrando…' : 'Entrar en la tablet'}
       </button>
@@ -99,7 +100,8 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <main className="grid-overlay flex min-h-dvh items-center justify-center bg-base-950 px-4">
+    <main className="grid-overlay relative flex min-h-dvh items-center justify-center overflow-hidden bg-base-950 px-4">
+      <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-accent-500/20 blur-[100px]" />
       <Suspense fallback={null}>
         <LoginContent />
       </Suspense>
