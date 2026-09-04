@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Map as MapIcon, Plus, Minus, Maximize2, MapPin, Siren, AlertTriangle, ShieldAlert, X } from 'lucide-react';
+import { Map as MapIcon, Plus, Minus, Maximize2, MapPin, Siren, AlertTriangle, ShieldAlert, X, Eraser } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatDateTime } from '@/lib/format';
 import { useMapPanZoom } from '@/components/mapa/useMapPanZoom';
 import Portal from '@/components/ui/Portal';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import SilentErrorBoundary from '@/components/tablet/SilentErrorBoundary';
 import type { Database } from '@/types/database';
 
@@ -37,6 +38,8 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
   const [selected, setSelected] = useState<Marker | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const [clearingAll, setClearingAll] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const pointerDownAt = useRef<{ x: number; y: number } | null>(null);
 
@@ -82,12 +85,31 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
         console.error('[mapa] fallo al refrescar marcadores', err);
       }
     }
-    const id = setInterval(poll, 8000);
+    const id = setInterval(poll, 3000);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
   }, []);
+
+  async function clearAllMarkers() {
+    setClearingAll(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/police/map/clear-markers', { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setError(json.error || 'No se pudieron borrar las llamadas.');
+        return;
+      }
+      setMarkers([]);
+    } catch {
+      setError('No se pudo conectar con el servidor.');
+    } finally {
+      setClearingAll(false);
+      setConfirmClearAll(false);
+    }
+  }
 
   function onMapPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     pointerDownAt.current = { x: e.clientX, y: e.clientY };
@@ -201,6 +223,16 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
               className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-slate-400 transition hover:text-white"
             >
               Cancelar
+            </button>
+          )}
+          {markers.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setConfirmClearAll(true)}
+              className="ml-auto flex items-center gap-1.5 rounded-lg border border-danger-500/30 px-3 py-2 text-xs font-semibold text-danger-500 transition hover:bg-danger-500/10"
+            >
+              <Eraser className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Borrar todas las llamadas
             </button>
           )}
         </div>
@@ -318,6 +350,17 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
           </Portal>
         )}
       </SilentErrorBoundary>
+
+      <ConfirmDialog
+        open={confirmClearAll}
+        title="¿Borrar todas las llamadas?"
+        description="Se quitarán del mapa todos los marcadores (posición, pánico, incidentes y controles) para todo el cuerpo. Esta acción no se puede deshacer."
+        confirmLabel="Borrar todas"
+        danger
+        loading={clearingAll}
+        onConfirm={clearAllMarkers}
+        onCancel={() => setConfirmClearAll(false)}
+      />
     </div>
   );
 }

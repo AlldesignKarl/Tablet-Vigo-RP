@@ -486,6 +486,7 @@ export interface Database {
         Returns: Database['public']['Tables']['map_markers']['Row'][];
       };
       police_delete_map_marker: { Args: { p_marker_id: string }; Returns: undefined };
+      police_clear_all_map_markers: { Args: Record<string, never>; Returns: undefined };
       search_citizens_police: {
         Args: { p_query: string; p_by: string };
         Returns: Database['public']['Views']['citizen_profile_view']['Row'][];
