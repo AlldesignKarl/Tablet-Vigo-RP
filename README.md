@@ -122,9 +122,10 @@ primera vez; a partir de ahí toda tu información persiste en Supabase
 ligada a la sesión anónima de ese navegador.
 
 **Acceso policial**: no se pide con ningún código. Un admin le asigna al
-ciudadano un empleo policial (CNP, Guardia Civil, UIP, UPR o sus altos
-mandos) desde `/admin/empleos` o desde el Panel Admin de la propia
-tablet, y el acceso a `/tablet/policia` se concede solo automáticamente.
+ciudadano un empleo relacionado con emergencias (CNP, Guardia Civil, GEO,
+UIP, UPR, Paramédico, Bombero o sus altos mandos) desde `/admin/empleos`
+o desde el Panel Admin de la propia tablet, y el acceso a
+`/tablet/policia` se concede solo automáticamente.
 
 ## 6. Sueldos automáticos cada 48h
 

@@ -7,17 +7,19 @@ export default async function PoliceLayout({ children }: { children: React.React
   const { data: isPolice } = await supabase.rpc('is_police_authorized');
 
   // Ya no existe un código de acceso: el permiso lo concede automáticamente
-  // un admin al asignar un empleo policial (CNP, GC, altos mandos, UIP,
-  // UPR). Comprobación real en servidor: visitar la URL directamente sin
-  // ese empleo asignado no da acceso al panel.
+  // un admin al asignar un empleo relacionado con emergencias (CNP, GC,
+  // GEO, UIP, UPR, Paramédico, Bombero o sus altos mandos). Comprobación
+  // real en servidor: visitar la URL directamente sin ese empleo asignado
+  // no da acceso al panel.
   if (!isPolice) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
         <ShieldOff className="h-10 w-10 text-slate-600" strokeWidth={1.5} />
         <h1 className="font-display text-lg font-bold text-white">Acceso restringido</h1>
         <p className="max-w-sm text-sm text-slate-400">
-          Solo pueden entrar aquí los ciudadanos con un empleo policial asignado (CNP, Guardia Civil, UIP o UPR).
-          Pide a un administrador que te asigne el empleo correspondiente.
+          Solo pueden entrar aquí los ciudadanos con un empleo de emergencias asignado (CNP, Guardia
+          Civil, GEO, UIP, UPR, Paramédico o Bombero). Pide a un administrador que te asigne el empleo
+          correspondiente.
         </p>
       </div>
     );

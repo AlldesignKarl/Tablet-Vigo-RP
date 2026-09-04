@@ -16,7 +16,8 @@ export default async function AdminPolicePage() {
         <h2 className="mb-1 font-semibold text-white">Acceso a la cuenta de policía</h2>
         <p className="text-xs text-slate-400">
           El acceso ya no se pide con un código: se concede automáticamente al asignarle a un
-          ciudadano un empleo policial (CNP, Guardia Civil, UIP o UPR, o sus altos mandos) desde{' '}
+          ciudadano un empleo relacionado con emergencias (CNP, Guardia Civil, GEO, UIP, UPR,
+          Paramédico, Bombero o sus altos mandos) desde{' '}
           <span className="font-mono text-slate-300">Empleos</span> o el Panel Admin de la tablet, y se
           retira si se le cambia a otro empleo. Desde aquí también puedes autorizar o revocar el acceso
           a mano y editar el indicativo/rango de cada agente.
