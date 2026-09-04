@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Orbitron, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import ToastProvider from '@/components/ui/ToastProvider';
+import DevToolsGuard from '@/components/ui/DevToolsGuard';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 const orbitron = Orbitron({
@@ -45,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="es" data-theme={theme} className={`${orbitron.variable} ${jetbrainsMono.variable}`}>
       <body>
+        <DevToolsGuard />
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
