@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   Home,
@@ -55,7 +55,6 @@ export default function TabletShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const now = useClock();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -78,9 +77,11 @@ export default function TabletShell({
   ];
 
   function refresh() {
+    // Recarga la página de verdad (no solo router.refresh(), que solo
+    // revalida los datos del servidor y puede no notarse si nada ha
+    // cambiado): así el botón siempre hace algo visible al pulsarlo.
     setRefreshing(true);
-    router.refresh();
-    setTimeout(() => setRefreshing(false), 600);
+    window.location.reload();
   }
 
   const timeLabel = now?.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) ?? '--:--:--';

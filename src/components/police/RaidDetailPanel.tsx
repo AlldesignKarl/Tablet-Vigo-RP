@@ -30,6 +30,8 @@ export default function RaidDetailPanel({ raid, initialStrokes }: { raid: Raid; 
   const [error, setError] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -155,8 +157,7 @@ export default function RaidDetailPanel({ raid, initialStrokes }: { raid: Raid; 
   }
 
   async function clearStrokes() {
-    setConfirmClear(false);
-    setStrokes([]);
+    setClearing(true);
     setError(null);
     try {
       const res = await fetch('/api/police/redadas/clear-strokes', {
@@ -165,14 +166,22 @@ export default function RaidDetailPanel({ raid, initialStrokes }: { raid: Raid; 
         body: JSON.stringify({ raidId: raid.id }),
       });
       const json = await res.json();
-      if (!res.ok || !json.ok) setError(json.error || 'No se pudo borrar el dibujo.');
+      if (!res.ok || !json.ok) {
+        setError(json.error || 'No se pudo borrar el dibujo.');
+        return;
+      }
+      setStrokes([]);
     } catch {
       setError('No se pudo conectar con el servidor.');
+    } finally {
+      setClearing(false);
+      setConfirmClear(false);
     }
   }
 
   async function deleteRaid() {
-    setConfirmDelete(false);
+    setDeleting(true);
+    setError(null);
     try {
       const res = await fetch('/api/police/redadas/delete', {
         method: 'POST',
@@ -187,6 +196,9 @@ export default function RaidDetailPanel({ raid, initialStrokes }: { raid: Raid; 
       router.push('/tablet/policia/redadas');
     } catch {
       setError('No se pudo conectar con el servidor.');
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -299,6 +311,7 @@ export default function RaidDetailPanel({ raid, initialStrokes }: { raid: Raid; 
         description="Se eliminarán todos los trazos de esta redada para todo el cuerpo. Esta acción no se puede deshacer."
         confirmLabel="Borrar dibujo"
         danger
+        loading={clearing}
         onConfirm={clearStrokes}
         onCancel={() => setConfirmClear(false)}
       />
@@ -308,6 +321,7 @@ export default function RaidDetailPanel({ raid, initialStrokes }: { raid: Raid; 
         description="Se eliminará la redada, sus notas y su dibujo para siempre."
         confirmLabel="Eliminar"
         danger
+        loading={deleting}
         onConfirm={deleteRaid}
         onCancel={() => setConfirmDelete(false)}
       />
