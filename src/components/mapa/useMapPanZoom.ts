@@ -48,7 +48,11 @@ export function useMapPanZoom() {
     // Ignorar el botón derecho (y el central): son para el menú
     // contextual del mapa de policía, no deben iniciar un arrastre.
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    // jsdom (tests) no implementa setPointerCapture: comprobar antes de
+    // llamarlo para no romper la interacción en el entorno de pruebas.
+    if (typeof e.currentTarget.setPointerCapture === 'function') {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 1) {
       drag.current = { startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y };

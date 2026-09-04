@@ -19,17 +19,26 @@ const MARKER_META: Record<MarkerType, { label: string; icon: typeof MapPin; clas
   control: { label: 'Punto de control', icon: ShieldAlert, className: 'bg-yellow-500 text-black' },
 };
 
+const DRAG_THRESHOLD_PX = 6;
+
 // Aviso importante: ERLC no da la ubicación real de los jugadores a
 // herramientas externas. Esto NO es rastreo automático: cada agente
-// marca a mano su posición (o un aviso) haciendo clic derecho en el
-// mapa, y el resto de agentes lo ven al instante por Supabase Realtime.
+// marca a mano su posición (o un aviso) en el mapa, y el resto de
+// agentes lo ven al instante por Supabase Realtime.
+//
+// El clic derecho (context menu) no es fiable en todos los dispositivos
+// (no existe en móvil/tablet táctil, que es justo donde se usa esta
+// app), así que la forma de colocar un marcador es: elegir el tipo en
+// la barra de arriba y luego tocar/pulsar el punto del mapa.
 export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Marker[] }) {
   const { scale, pos, zoomBy, reset, toggleZoom, isInteracting, handlers } = useMapPanZoom();
   const [markers, setMarkers] = useState<Marker[]>(initialMarkers);
-  const [menu, setMenu] = useState<{ screenX: number; screenY: number; relX: number; relY: number } | null>(null);
+  const [placingType, setPlacingType] = useState<MarkerType | null>(null);
   const [selected, setSelected] = useState<Marker | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [placing, setPlacing] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
+  const pointerDownAt = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     let supabase: ReturnType<typeof createClient>;
@@ -80,22 +89,30 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
     };
   }, []);
 
-  function handleContextMenu(e: React.MouseEvent) {
-    e.preventDefault();
-    if (!mapRef.current) return;
+  function onMapPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    pointerDownAt.current = { x: e.clientX, y: e.clientY };
+    handlers.onPointerDown(e);
+  }
+
+  async function onMapClick(e: React.MouseEvent<HTMLDivElement>) {
+    const start = pointerDownAt.current;
+    const moved = start ? Math.hypot(e.clientX - start.x, e.clientY - start.y) : Infinity;
+    if (moved > DRAG_THRESHOLD_PX) return; // fue un arrastre para mover el mapa, no un toque para colocar
+
+    if (!placingType || !mapRef.current) return;
     const rect = mapRef.current.getBoundingClientRect();
     const relX = (e.clientX - rect.left) / rect.width;
     const relY = (e.clientY - rect.top) / rect.height;
     if (relX < 0 || relX > 1 || relY < 0 || relY > 1) return;
-    setSelected(null);
-    setMenu({ screenX: e.clientX, screenY: e.clientY, relX, relY });
+
+    const type = placingType;
+    setPlacingType(null);
+    await createMarker(type, relX, relY);
   }
 
-  async function createMarker(type: MarkerType) {
-    if (!menu) return;
-    const { relX, relY } = menu;
-    setMenu(null);
+  async function createMarker(type: MarkerType, relX: number, relY: number) {
     setError(null);
+    setPlacing(true);
     try {
       const res = await fetch('/api/police/map/create-marker', {
         method: 'POST',
@@ -113,6 +130,8 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
       setMarkers((prev) => (prev.some((m) => m.id === created.id) ? prev : [created, ...prev]));
     } catch {
       setError('No se pudo conectar con el servidor.');
+    } finally {
+      setPlacing(false);
     }
   }
 
@@ -142,7 +161,9 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
         <div>
           <h1 className="text-xl font-bold text-white">Mapa policial</h1>
           <p className="text-xs text-slate-500">
-            Clic derecho para marcar tu posición o un aviso. No es rastreo automático: cada agente marca a mano.
+            {placingType
+              ? `Toca el mapa para colocar: ${MARKER_META[placingType].label}`
+              : 'Elige un tipo de marcador y toca el mapa para colocarlo. No es rastreo automático: cada agente marca a mano.'}
           </p>
         </div>
       </div>
@@ -152,137 +173,150 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
       )}
 
       <SilentErrorBoundary>
-      <div
-        className="hud-panel relative h-[70vh] touch-none select-none overflow-hidden"
-        {...handlers}
-        onDoubleClick={toggleZoom}
-        onContextMenu={handleContextMenu}
-      >
-        <div className="flex h-full w-full items-center justify-center" style={{ cursor: scale > 1 ? 'grab' : 'default' }}>
-          <div
-            ref={mapRef}
-            className="relative aspect-square h-full max-h-full max-w-full"
-            style={{
-              transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
-              transformOrigin: 'center center',
-              transition: isInteracting ? 'none' : 'transform 0.05s linear',
-            }}
-          >
-            <img src="/mapa-erlc.webp" alt="Mapa de ERLC" draggable={false} className="h-full w-full object-contain" />
-
-            {markers.map((m) => {
-              const meta = MARKER_META[m.type];
-              if (!meta) return null;
-              const Icon = meta.icon;
-              return (
-                <button
-                  key={m.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenu(null);
-                    setSelected(m);
-                  }}
-                  className={`no-glow absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/80 shadow-lg ${meta.className} ${
-                    meta.pulse ? 'animate-pulse' : ''
-                  }`}
-                  style={{ left: `${m.x * 100}%`, top: `${m.y * 100}%` }}
-                  title={`${meta.label} · ${m.callsign}`}
-                >
-                  <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="absolute bottom-3 right-3 flex flex-col gap-1.5">
-          <button
-            onClick={() => zoomBy(0.6)}
-            className="no-glow flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-base-900/90 text-white transition hover:border-accent-500/40"
-            title="Acercar"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2} />
-          </button>
-          <button
-            onClick={() => zoomBy(-0.6)}
-            className="no-glow flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-base-900/90 text-white transition hover:border-accent-500/40"
-            title="Alejar"
-          >
-            <Minus className="h-4 w-4" strokeWidth={2} />
-          </button>
-          <button
-            onClick={reset}
-            className="no-glow flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-base-900/90 text-white transition hover:border-accent-500/40"
-            title="Restablecer vista"
-          >
-            <Maximize2 className="h-4 w-4" strokeWidth={2} />
-          </button>
-        </div>
-      </div>
-
-      {menu && (
-        <Portal>
-          <div className="fixed inset-0 z-[95]" onClick={() => setMenu(null)} onContextMenu={(e) => e.preventDefault()}>
-            <div
-              className="hud-panel absolute w-56 space-y-1 p-2"
-              style={{ left: menu.screenX, top: menu.screenY }}
-              onClick={(e) => e.stopPropagation()}
+        <div className="flex flex-wrap gap-2">
+          {(Object.entries(MARKER_META) as [MarkerType, (typeof MARKER_META)[MarkerType]][]).map(([type, meta]) => {
+            const Icon = meta.icon;
+            const active = placingType === type;
+            return (
+              <button
+                key={type}
+                type="button"
+                disabled={placing}
+                onClick={() => setPlacingType((prev) => (prev === type ? null : type))}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  active ? 'border-accent-500/60 bg-accent-500/15 text-white' : 'border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/20'
+                }`}
+              >
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${meta.className}`}>
+                  <Icon className="h-3 w-3" strokeWidth={2.5} />
+                </span>
+                {meta.label}
+              </button>
+            );
+          })}
+          {placingType && (
+            <button
+              type="button"
+              onClick={() => setPlacingType(null)}
+              className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-slate-400 transition hover:text-white"
             >
-              {(Object.entries(MARKER_META) as [MarkerType, (typeof MARKER_META)[MarkerType]][]).map(([type, meta]) => {
+              Cancelar
+            </button>
+          )}
+        </div>
+
+        <div
+          className={`hud-panel relative mt-4 h-[70vh] touch-none select-none overflow-hidden ${placingType ? 'cursor-crosshair' : ''}`}
+          {...handlers}
+          onPointerDown={onMapPointerDown}
+          onClick={onMapClick}
+          onDoubleClick={toggleZoom}
+        >
+          <div className="flex h-full w-full items-center justify-center" style={{ cursor: placingType ? 'crosshair' : scale > 1 ? 'grab' : 'default' }}>
+            <div
+              ref={mapRef}
+              className="relative aspect-square h-full max-h-full max-w-full"
+              style={{
+                transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
+                transformOrigin: 'center center',
+                transition: isInteracting ? 'none' : 'transform 0.05s linear',
+              }}
+            >
+              <img src="/mapa-erlc.webp" alt="Mapa de ERLC" draggable={false} className="h-full w-full object-contain" />
+
+              {markers.map((m) => {
+                const meta = MARKER_META[m.type];
+                if (!meta) return null;
                 const Icon = meta.icon;
                 return (
                   <button
-                    key={type}
-                    onClick={() => createMarker(type)}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/5"
+                    key={m.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelected(m);
+                    }}
+                    className={`no-glow absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/80 shadow-lg ${meta.className} ${
+                      meta.pulse ? 'animate-pulse' : ''
+                    }`}
+                    style={{ left: `${m.x * 100}%`, top: `${m.y * 100}%` }}
+                    title={`${meta.label} · ${m.callsign}`}
                   >
-                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${meta.className}`}>
-                      <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
-                    </span>
-                    {meta.label}
+                    <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
                   </button>
                 );
               })}
             </div>
           </div>
-        </Portal>
-      )}
 
-      {selected && (
-        <Portal>
-          <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 p-4" onClick={() => setSelected(null)}>
-            <div className="hud-panel w-full max-w-xs space-y-3 p-5" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${MARKER_META[selected.type]?.className ?? 'bg-white/10 text-white'}`}
-                  >
-                    {(() => {
-                      const Icon = MARKER_META[selected.type]?.icon;
-                      return Icon ? <Icon className="h-4 w-4" strokeWidth={2.5} /> : null;
-                    })()}
-                  </span>
-                  <div>
-                    <p className="text-sm font-bold text-white">{MARKER_META[selected.type]?.label ?? selected.type}</p>
-                    <p className="font-mono text-xs text-slate-500">{selected.callsign}</p>
+          <div className="absolute bottom-3 right-3 flex flex-col gap-1.5">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomBy(0.6);
+              }}
+              className="no-glow flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-base-900/90 text-white transition hover:border-accent-500/40"
+              title="Acercar"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomBy(-0.6);
+              }}
+              className="no-glow flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-base-900/90 text-white transition hover:border-accent-500/40"
+              title="Alejar"
+            >
+              <Minus className="h-4 w-4" strokeWidth={2} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                reset();
+              }}
+              className="no-glow flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-base-900/90 text-white transition hover:border-accent-500/40"
+              title="Restablecer vista"
+            >
+              <Maximize2 className="h-4 w-4" strokeWidth={2} />
+            </button>
+          </div>
+        </div>
+
+        {selected && (
+          <Portal>
+            <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 p-4" onClick={() => setSelected(null)}>
+              <div className="hud-panel w-full max-w-xs space-y-3 p-5" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${MARKER_META[selected.type]?.className ?? 'bg-white/10 text-white'}`}
+                    >
+                      {(() => {
+                        const Icon = MARKER_META[selected.type]?.icon;
+                        return Icon ? <Icon className="h-4 w-4" strokeWidth={2.5} /> : null;
+                      })()}
+                    </span>
+                    <div>
+                      <p className="text-sm font-bold text-white">{MARKER_META[selected.type]?.label ?? selected.type}</p>
+                      <p className="font-mono text-xs text-slate-500">{selected.callsign}</p>
+                    </div>
                   </div>
+                  <button onClick={() => setSelected(null)} className="no-glow text-slate-500 hover:text-white">
+                    <X className="h-4 w-4" strokeWidth={2} />
+                  </button>
                 </div>
-                <button onClick={() => setSelected(null)} className="no-glow text-slate-500 hover:text-white">
-                  <X className="h-4 w-4" strokeWidth={2} />
+                {selected.note && <p className="text-sm text-slate-300">{selected.note}</p>}
+                <p className="text-xs text-slate-500">{formatDateTime(selected.created_at)}</p>
+                <button
+                  onClick={() => removeMarker(selected.id)}
+                  className="w-full rounded-lg bg-danger-600/80 py-2 text-sm font-semibold text-white transition hover:bg-danger-600"
+                >
+                  Quitar marcador
                 </button>
               </div>
-              {selected.note && <p className="text-sm text-slate-300">{selected.note}</p>}
-              <p className="text-xs text-slate-500">{formatDateTime(selected.created_at)}</p>
-              <button
-                onClick={() => removeMarker(selected.id)}
-                className="w-full rounded-lg bg-danger-600/80 py-2 text-sm font-semibold text-white transition hover:bg-danger-600"
-              >
-                Quitar marcador
-              </button>
             </div>
-          </div>
-        </Portal>
-      )}
+          </Portal>
+        )}
       </SilentErrorBoundary>
     </div>
   );
