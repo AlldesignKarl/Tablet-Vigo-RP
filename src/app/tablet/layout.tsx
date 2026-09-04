@@ -29,8 +29,6 @@ export default async function TabletLayout({ children }: { children: React.React
       dniNumber={profile.dni_number}
       avatarUrl={profile.roblox_avatar_url}
       isAdmin={isAdmin}
-      profileId={user.id}
-      isWanted={profile.is_wanted}
     >
       {children}
     </TabletShell>
