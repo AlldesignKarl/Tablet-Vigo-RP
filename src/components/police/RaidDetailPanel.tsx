@@ -258,7 +258,7 @@ export default function RaidDetailPanel({ raid, initialStrokes }: { raid: Raid; 
                 points={toSvgPoints(s.points as Point[])}
                 fill="none"
                 stroke={s.color}
-                strokeWidth={0.8}
+                strokeWidth={2.4}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
@@ -269,7 +269,7 @@ export default function RaidDetailPanel({ raid, initialStrokes }: { raid: Raid; 
                 points={toSvgPoints(drawing)}
                 fill="none"
                 stroke={color}
-                strokeWidth={0.8}
+                strokeWidth={2.4}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
