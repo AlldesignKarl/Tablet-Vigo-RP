@@ -273,6 +273,21 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      map_markers: {
+        Row: {
+          id: string;
+          created_by: string;
+          callsign: string;
+          type: 'posicion' | 'panico' | 'incidente' | 'control';
+          x: number;
+          y: number;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       radio_messages: {
         Row: { id: string; sender_id: string; callsign: string; channel: string; message: string; created_at: string };
         Insert: { sender_id: string; callsign: string; channel?: string; message: string };
@@ -429,6 +444,11 @@ export interface Database {
       admin_set_role: { Args: { p_profile_id: string; p_role: AppRole }; Returns: undefined };
       admin_set_job: { Args: { p_profile_id: string; p_job_id: string }; Returns: undefined };
       police_set_wanted: { Args: { p_citizen_id: string; p_reason: string; p_vehicle_plate?: string | null }; Returns: string };
+      police_create_map_marker: {
+        Args: { p_type: string; p_x: number; p_y: number; p_note?: string | null };
+        Returns: string;
+      };
+      police_delete_map_marker: { Args: { p_marker_id: string }; Returns: undefined };
       search_citizens_police: {
         Args: { p_query: string; p_by: string };
         Returns: Database['public']['Views']['citizen_profile_view']['Row'][];

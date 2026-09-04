@@ -7,8 +7,6 @@
 -- dónde está (o un aviso) sobre el mapa, y todos los demás agentes lo ven
 -- al instante. x/y son proporciones (0-1) sobre la imagen del mapa, no
 -- coordenadas del juego.
--- Es idempotente: se puede ejecutar varias veces sin problema.
--- =====================================================================
 
 create table if not exists public.map_markers (
   id uuid primary key default gen_random_uuid(),
@@ -28,6 +26,8 @@ alter table public.map_markers enable row level security;
 drop policy if exists map_markers_select on public.map_markers;
 create policy map_markers_select on public.map_markers for select
   using (public.is_police_authorized() or public.is_admin());
+-- Sin policies de insert/update/delete para clientes: solo las funciones
+-- de abajo (security definer) pueden crear o borrar un marcador.
 
 create or replace function public.police_create_map_marker(p_type text, p_x real, p_y real, p_note text default null)
 returns uuid language plpgsql security definer set search_path = public as $$

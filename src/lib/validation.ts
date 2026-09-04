@@ -86,6 +86,15 @@ export const wantedSchema = z.object({
 
 export const clearWantedSchema = z.object({ citizenId: z.string().uuid() });
 
+export const createMapMarkerSchema = z.object({
+  type: z.enum(['posicion', 'panico', 'incidente', 'control']),
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  note: z.string().trim().max(200).optional(),
+});
+
+export const deleteMapMarkerSchema = z.object({ markerId: z.string().uuid() });
+
 export const radioMessageSchema = z.object({
   channel: z.string().trim().min(1).max(30).default('general'),
   message: z.string().trim().min(1).max(500),
