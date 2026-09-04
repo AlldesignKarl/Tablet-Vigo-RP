@@ -21,7 +21,7 @@ export default function MapaPanel() {
       <div className="hud-panel relative h-[70vh] touch-none select-none overflow-hidden" {...handlers} onDoubleClick={toggleZoom}>
         <div className="flex h-full w-full items-center justify-center" style={{ cursor: scale > 1 ? 'grab' : 'default' }}>
           <img
-            src="/mapa-erlc.png"
+            src="/mapa-erlc.webp"
             alt="Mapa de ERLC"
             draggable={false}
             className="max-h-full max-w-full"

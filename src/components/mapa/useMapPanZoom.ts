@@ -45,6 +45,9 @@ export function useMapPanZoom() {
   }
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    // Ignorar el botón derecho (y el central): son para el menú
+    // contextual del mapa de policía, no deben iniciar un arrastre.
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 1) {

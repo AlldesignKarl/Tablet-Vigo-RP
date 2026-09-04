@@ -446,7 +446,7 @@ export interface Database {
       police_set_wanted: { Args: { p_citizen_id: string; p_reason: string; p_vehicle_plate?: string | null }; Returns: string };
       police_create_map_marker: {
         Args: { p_type: string; p_x: number; p_y: number; p_note?: string | null };
-        Returns: string;
+        Returns: Database['public']['Tables']['map_markers']['Row'][];
       };
       police_delete_map_marker: { Args: { p_marker_id: string }; Returns: undefined };
       search_citizens_police: {

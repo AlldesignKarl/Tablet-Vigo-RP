@@ -16,5 +16,8 @@ export const POST = withErrorHandling(async (req) => {
   });
   if (error) throw new ApiError(400, error.message);
 
-  return jsonOk({ id: data }, 201);
+  const marker = data?.[0];
+  if (!marker) throw new ApiError(500, 'Respuesta inesperada del servidor.');
+
+  return jsonOk(marker, 201);
 });

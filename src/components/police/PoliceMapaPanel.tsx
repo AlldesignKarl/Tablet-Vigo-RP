@@ -38,7 +38,8 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
       channel = supabase
         .channel('map-markers')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'map_markers' }, (payload) => {
-          setMarkers((prev) => [payload.new as Marker, ...prev]);
+          const created = payload.new as Marker;
+          setMarkers((prev) => (prev.some((m) => m.id === created.id) ? prev : [created, ...prev]));
         })
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'map_markers' }, (payload) => {
           const old = payload.old as { id: string };
@@ -54,6 +55,27 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
       } catch {
         // Ignorar: el mapa no debe romperse por un fallo al desconectar.
       }
+    };
+  }, []);
+
+  // Además del realtime, se refresca la lista entera cada pocos segundos:
+  // así los marcadores aparecen igual aunque el realtime falle o tarde
+  // (ya pasó algo parecido con las luces de busca y captura).
+  useEffect(() => {
+    let cancelled = false;
+    async function poll() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.from('map_markers').select('*').order('created_at', { ascending: false });
+        if (!cancelled && data) setMarkers(data);
+      } catch (err) {
+        console.error('[mapa] fallo al refrescar marcadores', err);
+      }
+    }
+    const id = setInterval(poll, 8000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
     };
   }, []);
 
@@ -80,7 +102,14 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
         body: JSON.stringify({ type, x: relX, y: relY }),
       });
       const json = await res.json();
-      if (!res.ok || !json.ok) setError(json.error || 'No se pudo crear el marcador.');
+      if (!res.ok || !json.ok) {
+        setError(json.error || 'No se pudo crear el marcador.');
+        return;
+      }
+      // No dependemos solo del realtime para verlo: lo pintamos ya
+      // mismo con lo que ha devuelto el servidor.
+      const created = json.data as Marker;
+      setMarkers((prev) => (prev.some((m) => m.id === created.id) ? prev : [created, ...prev]));
     } catch {
       setError('No se pudo conectar con el servidor.');
     }
@@ -89,6 +118,7 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
   async function removeMarker(id: string) {
     setSelected(null);
     setError(null);
+    setMarkers((prev) => prev.filter((m) => m.id !== id));
     try {
       const res = await fetch('/api/police/map/delete-marker', {
         method: 'POST',
@@ -136,7 +166,7 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
               transition: isInteracting ? 'none' : 'transform 0.05s linear',
             }}
           >
-            <img src="/mapa-erlc.png" alt="Mapa de ERLC" draggable={false} className="h-full w-full object-contain" />
+            <img src="/mapa-erlc.webp" alt="Mapa de ERLC" draggable={false} className="h-full w-full object-contain" />
 
             {markers.map((m) => {
               const meta = MARKER_META[m.type];

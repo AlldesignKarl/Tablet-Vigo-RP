@@ -6,7 +6,6 @@
 -- la base de datos pero no se veía nada en pantalla. Ahora devuelve la
 -- fila completa para que la tablet la pinte al instante sin depender
 -- solo de Realtime.
--- Es idempotente: se puede ejecutar varias veces sin problema.
 -- =====================================================================
 
 drop function if exists public.police_create_map_marker(text, real, real, text);
