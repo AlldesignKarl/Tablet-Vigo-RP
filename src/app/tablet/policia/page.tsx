@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Shield, Users, Car, ShieldAlert, Siren, Search, FileWarning } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import OnlineCitizensPanel from '@/components/police/OnlineCitizensPanel';
+import type { Database } from '@/types/database';
 
 export default async function PoliceDashboardPage() {
   const supabase = createServerSupabaseClient();
@@ -17,7 +18,17 @@ export default async function PoliceDashboardPage() {
     .from('complaints_view')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'pendiente');
-  const { data: onlineCitizens } = await supabase.rpc('police_online_citizens');
+
+  // Envuelto en try/catch a propósito: si la función todavía no existe
+  // en la base de datos (falta aplicar una migración reciente) esto no
+  // debe tumbar todo el panel policial, solo dejar la lista vacía.
+  let onlineCitizens: Database['public']['Functions']['police_online_citizens']['Returns'] = [];
+  try {
+    const { data } = await supabase.rpc('police_online_citizens');
+    if (data) onlineCitizens = data;
+  } catch (err) {
+    console.error('[panel-policial] no se pudo cargar quién está conectado', err);
+  }
 
   return (
     <div className="space-y-6">
