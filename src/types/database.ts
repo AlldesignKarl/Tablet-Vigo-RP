@@ -484,15 +484,18 @@ export interface Database {
         Args: { p_complaint_id: string; p_status: string };
         Returns: { success: boolean; message: string }[];
       };
-      verify_panel_admin_password: { Args: { p_password: string }; Returns: boolean };
+      verify_panel_admin_password: { Args: { p_password: string; p_client_key?: string | null }; Returns: boolean };
       get_tablet_theme: { Args: Record<string, never>; Returns: string };
-      panel_admin_set_theme: { Args: { p_password: string; p_theme: string }; Returns: { success: boolean; message: string }[] };
+      panel_admin_set_theme: {
+        Args: { p_password: string; p_theme: string; p_client_key?: string | null };
+        Returns: { success: boolean; message: string }[];
+      };
       panel_admin_set_password: {
-        Args: { p_current_password: string; p_new_password: string };
+        Args: { p_current_password: string; p_new_password: string; p_client_key?: string | null };
         Returns: { success: boolean; message: string }[];
       };
       panel_admin_search_citizens: {
-        Args: { p_password: string; p_query: string };
+        Args: { p_password: string; p_query: string; p_client_key?: string | null };
         Returns: {
           profile_id: string;
           first_name: string;
@@ -506,7 +509,7 @@ export interface Database {
         }[];
       };
       panel_admin_set_job: {
-        Args: { p_password: string; p_profile_id: string; p_job_id: string };
+        Args: { p_password: string; p_profile_id: string; p_job_id: string; p_client_key?: string | null };
         Returns: { success: boolean; message: string }[];
       };
       post_internal_affairs_message: {

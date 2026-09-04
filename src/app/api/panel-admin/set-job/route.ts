@@ -1,5 +1,5 @@
 import { requireUser, ApiError } from '@/lib/auth-helpers';
-import { jsonOk, withErrorHandling } from '@/lib/api-helpers';
+import { jsonOk, withErrorHandling, getClientIp } from '@/lib/api-helpers';
 import { panelAdminSetJobSchema } from '@/lib/validation';
 
 export const POST = withErrorHandling(async (req) => {
@@ -10,6 +10,7 @@ export const POST = withErrorHandling(async (req) => {
     p_password: body.password,
     p_profile_id: body.profileId,
     p_job_id: body.jobId,
+    p_client_key: getClientIp(req),
   });
   if (error) throw new ApiError(400, error.message);
 

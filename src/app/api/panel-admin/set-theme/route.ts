@@ -1,5 +1,5 @@
 import { requireUser, ApiError } from '@/lib/auth-helpers';
-import { jsonOk, withErrorHandling } from '@/lib/api-helpers';
+import { jsonOk, withErrorHandling, getClientIp } from '@/lib/api-helpers';
 import { panelAdminSetThemeSchema } from '@/lib/validation';
 
 export const POST = withErrorHandling(async (req) => {
@@ -9,6 +9,7 @@ export const POST = withErrorHandling(async (req) => {
   const { data, error } = await supabase.rpc('panel_admin_set_theme', {
     p_password: body.password,
     p_theme: body.theme,
+    p_client_key: getClientIp(req),
   });
   if (error) throw new ApiError(400, error.message);
 
