@@ -18,8 +18,7 @@ export default async function AdminOverviewPage() {
       </div>
       <p className="text-sm text-slate-400">
         Usa el menú superior para configurar sueldos, precios de licencias, productos de la tienda,
-        usuarios policiales, el código de acceso policial, los webhooks de Discord y los roles de
-        cada usuario.
+        usuarios policiales, los webhooks de Discord y los roles de cada usuario.
       </p>
     </div>
   );

@@ -321,6 +321,30 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      panel_admin_config: {
+        Row: { id: string; password_hash: string; theme: 'dark' | 'light'; updated_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      internal_affairs_posts: {
+        Row: { id: string; author_id: string; callsign: string; message: string; created_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      raids: {
+        Row: { id: string; title: string; notes: string; created_by: string; callsign: string; created_at: string; updated_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      raid_strokes: {
+        Row: { id: string; raid_id: string; points: { x: number; y: number }[]; color: string; created_by: string; created_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       citizen_profile_view: {
@@ -419,14 +443,6 @@ export interface Database {
         Returns: { success: boolean; message: string; vehicle_id: string | null }[];
       };
       delete_vehicle: { Args: { p_vehicle_id: string }; Returns: { success: boolean; message: string }[] };
-      request_police_access_code: {
-        Args: Record<string, never>;
-        Returns: { success: boolean; message: string; code: string | null }[];
-      };
-      redeem_police_access_code: {
-        Args: { p_code: string };
-        Returns: { success: boolean; message: string }[];
-      };
       police_arrest: { Args: { p_citizen_id: string; p_reason: string; p_duration_minutes: number }; Returns: string };
       police_fine: { Args: { p_citizen_id: string; p_reason: string; p_amount_cents: number }; Returns: string };
       police_confiscate: {
@@ -468,6 +484,47 @@ export interface Database {
         Args: { p_complaint_id: string; p_status: string };
         Returns: { success: boolean; message: string }[];
       };
+      verify_panel_admin_password: { Args: { p_password: string }; Returns: boolean };
+      get_tablet_theme: { Args: Record<string, never>; Returns: string };
+      panel_admin_set_theme: { Args: { p_password: string; p_theme: string }; Returns: { success: boolean; message: string }[] };
+      panel_admin_set_password: {
+        Args: { p_current_password: string; p_new_password: string };
+        Returns: { success: boolean; message: string }[];
+      };
+      panel_admin_search_citizens: {
+        Args: { p_password: string; p_query: string };
+        Returns: {
+          profile_id: string;
+          first_name: string;
+          last_name: string;
+          dni_number: string;
+          roblox_username: string;
+          role: AppRole;
+          job_id: string | null;
+          job_code: string | null;
+          job_name: string | null;
+        }[];
+      };
+      panel_admin_set_job: {
+        Args: { p_password: string; p_profile_id: string; p_job_id: string };
+        Returns: { success: boolean; message: string }[];
+      };
+      post_internal_affairs_message: {
+        Args: { p_message: string };
+        Returns: Database['public']['Tables']['internal_affairs_posts']['Row'][];
+      };
+      delete_internal_affairs_message: { Args: { p_id: string }; Returns: undefined };
+      create_raid: {
+        Args: { p_title: string; p_notes?: string };
+        Returns: Database['public']['Tables']['raids']['Row'][];
+      };
+      update_raid_notes: { Args: { p_raid_id: string; p_notes: string }; Returns: undefined };
+      delete_raid: { Args: { p_raid_id: string }; Returns: undefined };
+      add_raid_stroke: {
+        Args: { p_raid_id: string; p_points: { x: number; y: number }[]; p_color?: string };
+        Returns: Database['public']['Tables']['raid_strokes']['Row'][];
+      };
+      clear_raid_strokes: { Args: { p_raid_id: string }; Returns: undefined };
     };
     Enums: {
       app_role: AppRole;

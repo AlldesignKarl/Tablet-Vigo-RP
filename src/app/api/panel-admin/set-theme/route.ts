@@ -1,15 +1,15 @@
 import { requireUser, ApiError } from '@/lib/auth-helpers';
 import { jsonOk, withErrorHandling } from '@/lib/api-helpers';
-import { policeAccessCodeSchema } from '@/lib/validation';
+import { panelAdminSetThemeSchema } from '@/lib/validation';
 
 export const POST = withErrorHandling(async (req) => {
   const { supabase } = await requireUser();
-  const body = policeAccessCodeSchema.parse(await req.json());
+  const body = panelAdminSetThemeSchema.parse(await req.json());
 
-  // El código nunca se compara en el frontend: redeem_police_access_code()
-  // lo verifica en servidor contra el hash del último código sin usar de
-  // este ciudadano y aplica rate limiting para evitar fuerza bruta.
-  const { data, error } = await supabase.rpc('redeem_police_access_code', { p_code: body.code });
+  const { data, error } = await supabase.rpc('panel_admin_set_theme', {
+    p_password: body.password,
+    p_theme: body.theme,
+  });
   if (error) throw new ApiError(400, error.message);
 
   const result = data?.[0];

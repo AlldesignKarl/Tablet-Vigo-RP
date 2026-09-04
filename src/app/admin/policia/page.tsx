@@ -15,10 +15,11 @@ export default async function AdminPolicePage() {
       <div className="hud-panel p-5">
         <h2 className="mb-1 font-semibold text-white">Acceso a la cuenta de policía</h2>
         <p className="text-xs text-slate-400">
-          Ya no hay un código fijo. Cada ciudadano que pide entrar en la sección de policía genera un
-          código de un solo uso que se envía por email a{' '}
-          <span className="font-mono text-slate-300">jc.expressdesigner@gmail.com</span>. Comparte ese
-          código solo con la persona a la que quieras autorizar como policía.
+          El acceso ya no se pide con un código: se concede automáticamente al asignarle a un
+          ciudadano un empleo policial (CNP, Guardia Civil, UIP o UPR, o sus altos mandos) desde{' '}
+          <span className="font-mono text-slate-300">Empleos</span> o el Panel Admin de la tablet, y se
+          retira si se le cambia a otro empleo. Desde aquí también puedes autorizar o revocar el acceso
+          a mano y editar el indicativo/rango de cada agente.
         </p>
       </div>
       <PoliceUsersAdminPanel policeUsers={policeUsers ?? []} dnis={dnis ?? []} />

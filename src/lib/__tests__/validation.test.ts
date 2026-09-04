@@ -5,7 +5,7 @@ import {
   arrestSchema,
   removePointsSchema,
   registerVehicleSchema,
-  policeAccessCodeSchema,
+  panelAdminSetPasswordSchema,
 } from '@/lib/validation';
 
 describe('createDniSchema', () => {
@@ -86,13 +86,21 @@ describe('registerVehicleSchema', () => {
   });
 });
 
-describe('policeAccessCodeSchema', () => {
-  it('rechaza códigos que no tengan exactamente 6 dígitos', () => {
-    expect(policeAccessCodeSchema.safeParse({ code: '1212' }).success).toBe(false);
-    expect(policeAccessCodeSchema.safeParse({ code: 'abcdef' }).success).toBe(false);
+describe('panelAdminSetPasswordSchema', () => {
+  it('rechaza una contraseña nueva que no sea solo números', () => {
+    expect(
+      panelAdminSetPasswordSchema.safeParse({ currentPassword: '0000', newPassword: 'abcd' }).success,
+    ).toBe(false);
   });
 
-  it('acepta un código de 6 dígitos', () => {
-    expect(policeAccessCodeSchema.safeParse({ code: '048213' }).success).toBe(true);
+  it('rechaza una contraseña nueva demasiado corta o demasiado larga', () => {
+    expect(panelAdminSetPasswordSchema.safeParse({ currentPassword: '0000', newPassword: '12' }).success).toBe(false);
+    expect(
+      panelAdminSetPasswordSchema.safeParse({ currentPassword: '0000', newPassword: '1234567890123' }).success,
+    ).toBe(false);
+  });
+
+  it('acepta una contraseña nueva numérica de longitud válida', () => {
+    expect(panelAdminSetPasswordSchema.safeParse({ currentPassword: '0000', newPassword: '4821' }).success).toBe(true);
   });
 });

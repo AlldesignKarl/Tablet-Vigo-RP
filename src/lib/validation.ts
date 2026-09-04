@@ -25,10 +25,6 @@ export const purchaseLicenseSchema = z.object({ licenseTypeId: z.string().uuid()
 export const purchaseProductSchema = z.object({ productId: z.string().uuid() });
 export const payFineSchema = z.object({ fineId: z.string().uuid() });
 
-export const policeAccessCodeSchema = z.object({
-  code: z.string().trim().regex(/^\d{6}$/, 'El código debe tener 6 dígitos.'),
-});
-
 export const searchCitizenSchema = z.object({
   query: z.string().trim().min(2).max(80),
   by: z.enum(['dni', 'nombre', 'roblox']).default('nombre'),
@@ -95,11 +91,6 @@ export const createMapMarkerSchema = z.object({
 
 export const deleteMapMarkerSchema = z.object({ markerId: z.string().uuid() });
 
-export const radioMessageSchema = z.object({
-  channel: z.string().trim().min(1).max(30).default('general'),
-  message: z.string().trim().min(1).max(500),
-});
-
 export const adminConfigSchema = z.object({
   key: z.string().trim().min(1).max(60),
   value: z.record(z.unknown()),
@@ -137,3 +128,60 @@ export const adminAssignJobSchema = z.object({
   profileId: z.string().uuid(),
   jobId: z.string().uuid(),
 });
+
+export const panelAdminPasswordSchema = z.object({
+  password: z.string().trim().min(1).max(20),
+});
+
+export const panelAdminSetThemeSchema = z.object({
+  password: z.string().trim().min(1).max(20),
+  theme: z.enum(['dark', 'light']),
+});
+
+export const panelAdminSetPasswordSchema = z.object({
+  currentPassword: z.string().trim().min(1).max(20),
+  newPassword: z.string().trim().regex(/^\d{4,12}$/, 'La contraseña debe ser solo números (4 a 12 dígitos).'),
+});
+
+export const panelAdminSearchSchema = z.object({
+  password: z.string().trim().min(1).max(20),
+  query: z.string().trim().min(2).max(80),
+});
+
+export const panelAdminSetJobSchema = z.object({
+  password: z.string().trim().min(1).max(20),
+  profileId: z.string().uuid(),
+  jobId: z.string().uuid(),
+});
+
+export const createInternalAffairsPostSchema = z.object({
+  message: z.string().trim().min(1).max(2000),
+});
+
+export const deleteInternalAffairsPostSchema = z.object({ postId: z.string().uuid() });
+
+export const createRaidSchema = z.object({
+  title: z.string().trim().min(2).max(120),
+  notes: z.string().trim().max(4000).default(''),
+});
+
+export const updateRaidNotesSchema = z.object({
+  raidId: z.string().uuid(),
+  notes: z.string().trim().max(4000),
+});
+
+export const deleteRaidSchema = z.object({ raidId: z.string().uuid() });
+
+const raidPointSchema = z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) });
+
+export const addRaidStrokeSchema = z.object({
+  raidId: z.string().uuid(),
+  points: z.array(raidPointSchema).min(2).max(2000),
+  color: z
+    .string()
+    .trim()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Color inválido.')
+    .default('#ef4444'),
+});
+
+export const clearRaidStrokesSchema = z.object({ raidId: z.string().uuid() });

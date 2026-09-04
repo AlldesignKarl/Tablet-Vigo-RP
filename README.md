@@ -87,30 +87,14 @@ Integraciones → Webhooks → Nuevo webhook) y pegar cada URL desde
 `/admin/discord` una vez la app esté funcionando. Las URLs se guardan
 cifradas en la base de datos y solo se usan desde el servidor.
 
-## 3. Código de acceso policial por email (Resend)
-
-Ya no hay un código policial fijo compartido: cada vez que un ciudadano
-pide entrar en `/tablet/policia`, la app genera un código de 6 dígitos
-que caduca en 10 minutos y lo envía por email únicamente al dueño del
-servidor (nunca al ciudadano). Solo quien reciba ese email decide si se
-lo da a la persona que lo pidió.
-
-1. Crea una cuenta gratuita en [resend.com](https://resend.com) (100
-   emails/día gratis, más que suficiente).
-2. Ve a **API Keys** y crea una clave nueva → esa es tu `RESEND_API_KEY`.
-   No hace falta verificar un dominio propio: se envía desde
-   `onboarding@resend.dev`, que funciona sin configuración adicional.
-3. Define `POLICE_CODE_EMAIL` con el correo que debe recibir los códigos
-   (por ejemplo, tu propio email).
-
-## 4. Roblox
+## 3. Roblox
 
 No requiere API key: se usan los endpoints públicos de Roblox
 (`users.roblox.com`, `thumbnails.roblox.com`) desde el servidor
 (`src/lib/roblox.ts`), evitando problemas de CORS y sin exponer nada al
 cliente.
 
-## 5. Variables de entorno
+## 4. Variables de entorno
 
 Copia `.env.example` a `.env.local` y rellena:
 
@@ -125,10 +109,8 @@ cp .env.example .env.local
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API | **Sí** |
 | `NEXT_PUBLIC_SITE_URL` | URL pública de tu app | No |
 | `CRON_SECRET` | Generado por ti (`openssl rand -hex 32`) | **Sí** |
-| `RESEND_API_KEY` | resend.com → API Keys (paso 3) | **Sí** |
-| `POLICE_CODE_EMAIL` | El correo que debe recibir los códigos policiales | No |
 
-## 6. Ejecutar en local
+## 5. Ejecutar en local
 
 ```bash
 npm install
@@ -139,11 +121,12 @@ Abre `http://localhost:3000`, pulsa "Entrar en la tablet" y crea tu DNI la
 primera vez; a partir de ahí toda tu información persiste en Supabase
 ligada a la sesión anónima de ese navegador.
 
-**Acceso policial**: no hay código fijo. Desde `/tablet/policia` cualquier
-ciudadano con DNI puede pedir un código de un solo uso, que llega por
-email a `POLICE_CODE_EMAIL` (ver paso 3).
+**Acceso policial**: no se pide con ningún código. Un admin le asigna al
+ciudadano un empleo policial (CNP, Guardia Civil, UIP, UPR o sus altos
+mandos) desde `/admin/empleos` o desde el Panel Admin de la propia
+tablet, y el acceso a `/tablet/policia` se concede solo automáticamente.
 
-## 7. Sueldos automáticos cada 48h
+## 6. Sueldos automáticos cada 48h
 
 El endpoint `GET /api/cron/pay-salaries` paga a **todos** los ciudadanos
 cuyo sueldo esté vencido, de forma atómica (nadie puede cobrar dos veces).
@@ -164,7 +147,7 @@ silenciosa) o pulsa "Cobrar sueldo" — la función `claim_salary()` en
 PostgreSQL usa un bloqueo de fila para garantizar que nunca se paga dos
 veces, sin importar cuántas pestañas o peticiones simultáneas haya.
 
-## 8. Desplegar en Vercel
+## 7. Desplegar en Vercel
 
 ```bash
 npm install -g vercel
@@ -174,8 +157,6 @@ vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
 vercel env add SUPABASE_SERVICE_ROLE_KEY
 vercel env add NEXT_PUBLIC_SITE_URL
 vercel env add CRON_SECRET
-vercel env add RESEND_API_KEY
-vercel env add POLICE_CODE_EMAIL
 vercel --prod
 ```
 
@@ -265,8 +246,6 @@ Para dejarlo funcionando de verdad necesitas:
    que usan Supabase están marcadas como dinámicas).
 5. Desplegar en Vercel (paso 7) y configurar el cron (paso 6).
 6. Crear los webhooks de Discord y pegarlos en `/admin/discord`.
-7. Crear una cuenta de Resend y añadir `RESEND_API_KEY` y
-   `POLICE_CODE_EMAIL` (paso 3) para que el acceso policial funcione.
 
 Sin estas credenciales no es posible probar contra una base de datos real
 ni desplegar, así que no se ha simulado ningún despliegue ni URL de

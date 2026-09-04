@@ -20,6 +20,7 @@ import {
   Signal,
   BatteryFull,
   RotateCw,
+  Lock,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -73,6 +74,7 @@ export default function TabletShell({
     { href: '/tablet/historial', label: 'Historial', icon: Scale, show: true },
     { href: '/tablet/policia', label: 'Policía', icon: Shield, show: true },
     { href: '/admin', label: 'Admin', icon: Settings, show: isAdmin },
+    { href: '/tablet/panel-admin', label: 'Panel Admin', icon: Lock, show: true },
   ];
 
   function refresh() {
