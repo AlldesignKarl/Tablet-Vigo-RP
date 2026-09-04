@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { formatDateTime } from '@/lib/format';
 import { useMapPanZoom } from '@/components/mapa/useMapPanZoom';
 import Portal from '@/components/ui/Portal';
+import SilentErrorBoundary from '@/components/tablet/SilentErrorBoundary';
 import type { Database } from '@/types/database';
 
 type Marker = Database['public']['Tables']['map_markers']['Row'];
@@ -150,6 +151,7 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
         <p className="rounded-lg border border-danger-500/40 bg-danger-500/10 px-3 py-2 text-xs text-danger-500">Error: {error}</p>
       )}
 
+      <SilentErrorBoundary>
       <div
         className="hud-panel relative h-[70vh] touch-none select-none overflow-hidden"
         {...handlers}
@@ -170,6 +172,7 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
 
             {markers.map((m) => {
               const meta = MARKER_META[m.type];
+              if (!meta) return null;
               const Icon = meta.icon;
               return (
                 <button
@@ -251,14 +254,16 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
             <div className="hud-panel w-full max-w-xs space-y-3 p-5" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${MARKER_META[selected.type].className}`}>
+                  <span
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${MARKER_META[selected.type]?.className ?? 'bg-white/10 text-white'}`}
+                  >
                     {(() => {
-                      const Icon = MARKER_META[selected.type].icon;
-                      return <Icon className="h-4 w-4" strokeWidth={2.5} />;
+                      const Icon = MARKER_META[selected.type]?.icon;
+                      return Icon ? <Icon className="h-4 w-4" strokeWidth={2.5} /> : null;
                     })()}
                   </span>
                   <div>
-                    <p className="text-sm font-bold text-white">{MARKER_META[selected.type].label}</p>
+                    <p className="text-sm font-bold text-white">{MARKER_META[selected.type]?.label ?? selected.type}</p>
                     <p className="font-mono text-xs text-slate-500">{selected.callsign}</p>
                   </div>
                 </div>
@@ -278,6 +283,7 @@ export default function PoliceMapaPanel({ initialMarkers }: { initialMarkers: Ma
           </div>
         </Portal>
       )}
+      </SilentErrorBoundary>
     </div>
   );
 }
