@@ -84,7 +84,7 @@ export default function WantedOverlay({ profileId, initialWanted }: { profileId:
       }
     }
 
-    const id = setInterval(poll, 8000);
+    const id = setInterval(poll, 2000);
     return () => {
       cancelled = true;
       clearInterval(id);
