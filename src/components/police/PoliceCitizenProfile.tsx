@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { centsToEuros, formatDate, formatDateTime } from '@/lib/format';
 import { useToast } from '@/components/ui/ToastProvider';
 import Portal from '@/components/ui/Portal';
+import OnlineStatusBadge from '@/components/police/OnlineStatusBadge';
 import type { CitizenProfile } from '@/lib/data/citizen';
 import type { Database } from '@/types/database';
 
@@ -82,9 +83,16 @@ export default function PoliceCitizenProfile({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-lg font-bold text-white">
-            {profile.first_name} {profile.last_name}
-          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-lg font-bold text-white">
+              {profile.first_name} {profile.last_name}
+            </h1>
+            <span className="flex items-center gap-1.5 rounded-full border border-accent-500/40 bg-accent-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-accent-400">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-400" />
+              Revisando expediente
+            </span>
+            <OnlineStatusBadge profileId={profile.profile_id} initialLastSeenAt={profile.last_seen_at} />
+          </div>
           <p className="text-sm text-slate-400">
             {profile.dni_number} · @{profile.roblox_username} · Nacimiento {formatDate(profile.birth_date)}
           </p>

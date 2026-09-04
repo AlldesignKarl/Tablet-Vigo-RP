@@ -15,7 +15,14 @@ export interface Database {
   public: {
     Tables: {
       profiles: {
-        Row: { id: string; role: AppRole; display_name: string | null; created_at: string; updated_at: string };
+        Row: {
+          id: string;
+          role: AppRole;
+          display_name: string | null;
+          created_at: string;
+          updated_at: string;
+          last_seen_at: string | null;
+        };
         Insert: Partial<Database['public']['Tables']['profiles']['Row']> & { id: string };
         Update: Partial<Database['public']['Tables']['profiles']['Row']>;
         Relationships: [];
@@ -345,6 +352,19 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      registered_weapons: {
+        Row: {
+          id: string;
+          profile_id: string;
+          weapon_model: string;
+          serial_number: string;
+          price_cents: number;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       citizen_profile_view: {
@@ -374,6 +394,7 @@ export interface Database {
           is_wanted: boolean;
           wanted_reason: string | null;
           wanted_since: string | null;
+          last_seen_at: string | null;
         };
         Relationships: [];
       };
@@ -528,6 +549,32 @@ export interface Database {
         Returns: Database['public']['Tables']['raid_strokes']['Row'][];
       };
       clear_raid_strokes: { Args: { p_raid_id: string }; Returns: undefined };
+      touch_presence: { Args: Record<string, never>; Returns: undefined };
+      police_online_citizens: {
+        Args: Record<string, never>;
+        Returns: {
+          profile_id: string;
+          first_name: string;
+          last_name: string;
+          dni_number: string;
+          roblox_avatar_url: string | null;
+          last_seen_at: string;
+        }[];
+      };
+      police_list_weapons: {
+        Args: Record<string, never>;
+        Returns: {
+          weapon_id: string;
+          weapon_model: string;
+          serial_number: string;
+          price_cents: number;
+          created_at: string;
+          profile_id: string;
+          first_name: string;
+          last_name: string;
+          dni_number: string;
+        }[];
+      };
     };
     Enums: {
       app_role: AppRole;

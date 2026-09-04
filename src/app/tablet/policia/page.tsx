@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Shield, Users, Car, ShieldAlert, Siren, Search, FileWarning } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import OnlineCitizensPanel from '@/components/police/OnlineCitizensPanel';
 
 export default async function PoliceDashboardPage() {
   const supabase = createServerSupabaseClient();
@@ -16,6 +17,7 @@ export default async function PoliceDashboardPage() {
     .from('complaints_view')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'pendiente');
+  const { data: onlineCitizens } = await supabase.rpc('police_online_citizens');
 
   return (
     <div className="space-y-6">
@@ -36,6 +38,8 @@ export default async function PoliceDashboardPage() {
         <StatCard icon={FileWarning} label="Denuncias pendientes" value={pendingComplaints ?? 0} danger />
         <StatCard icon={Siren} label="En busca y captura" value={stats?.total_wanted ?? 0} danger />
       </div>
+
+      <OnlineCitizensPanel initialCitizens={onlineCitizens ?? []} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Link
