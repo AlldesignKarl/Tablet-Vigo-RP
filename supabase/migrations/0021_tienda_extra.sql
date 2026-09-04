@@ -1,5 +1,4 @@
 -- Artículos de rol variados para la tienda.
--- Es idempotente: se puede ejecutar varias veces sin problema.
 insert into public.shop_products (code, name, description, icon, price_cents) values
   ('cadena_oro', 'Cadena de oro', 'Cadena de oro llamativa, ideal para presumir.', '📿', 15000),
   ('rolex', 'Rolex', 'Reloj de lujo. Puro estatus.', '⌚', 50000),

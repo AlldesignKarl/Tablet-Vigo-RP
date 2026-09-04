@@ -97,7 +97,7 @@ export default function DniCard({ dni }: { dni: DniCardData }) {
 
               <div className="mt-2 flex flex-1 gap-3 sm:mt-3 sm:gap-4">
                 <div className="flex w-[26%] shrink-0 flex-col gap-1.5">
-                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded-md border border-black/20 bg-white">
+                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded-md border border-black/25 bg-black/10">
                     {dni.robloxAvatarUrl ? (
                       <Image src={dni.robloxAvatarUrl} alt={dni.robloxUsername} fill className="object-cover" unoptimized />
                     ) : (
@@ -127,7 +127,7 @@ export default function DniCard({ dni }: { dni: DniCardData }) {
                         'repeating-linear-gradient(45deg, #2b2b2b 0px, #2b2b2b 3px, #e8b93a 3px, #e8b93a 6px)',
                     }}
                   />
-                  <div className="relative h-8 w-8 overflow-hidden rounded-full border border-black/20 bg-white grayscale">
+                  <div className="relative h-8 w-8 overflow-hidden rounded-full border border-black/20 bg-black/10 grayscale">
                     {dni.robloxAvatarUrl ? (
                       <Image src={dni.robloxAvatarUrl} alt="" fill className="object-cover" unoptimized />
                     ) : (

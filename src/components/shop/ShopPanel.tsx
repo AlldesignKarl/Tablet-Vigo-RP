@@ -169,16 +169,45 @@ function ShopSection({
 function LicenseCard({ lt, owned, onBuy }: { lt: LicenseType; owned?: License; onBuy: () => void }) {
   const canBuy = !owned || lt.renewable;
   return (
-    <div className="hud-panel flex flex-col gap-3 p-5">
-      <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] text-2xl">{lt.icon}</span>
-        <div className="min-w-0">
-          <h3 className="truncate font-semibold text-white">{lt.name}</h3>
-          <p className="font-mono text-xs text-slate-500">{centsToEuros(lt.price_cents)}</p>
+    <div className={`hud-panel flex flex-col gap-3 p-5 ${owned ? 'border-success-500/25' : ''}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] text-2xl">{lt.icon}</span>
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Licencia</p>
+            <h3 className="truncate font-semibold text-white">{lt.name}</h3>
+          </div>
+        </div>
+        <span
+          className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
+            owned ? 'bg-success-500/15 text-success-500' : 'bg-white/5 text-slate-500'
+          }`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${owned ? 'bg-success-500' : 'bg-slate-500'}`} />
+          {owned ? 'Obtenida' : 'No obtenida'}
+        </span>
+      </div>
+
+      <p className="flex-1 text-xs text-slate-400">{lt.description}</p>
+
+      <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-3 text-[11px]">
+        <div>
+          <p className="text-slate-500">Precio</p>
+          <p className="font-mono font-semibold text-white">{centsToEuros(lt.price_cents)}</p>
+        </div>
+        <div>
+          <p className="text-slate-500">{owned ? 'Obtenida el' : 'Renovable'}</p>
+          <p className="font-mono font-semibold text-white">{owned ? formatDate(owned.acquired_at) : lt.renewable ? 'Sí' : 'No'}</p>
         </div>
       </div>
-      <p className="flex-1 text-xs text-slate-400">{lt.description}</p>
-      {owned && <p className="text-[11px] text-success-500">✓ Adquirida el {formatDate(owned.acquired_at)}</p>}
+
+      {owned && (
+        <p className="flex items-center gap-1.5 rounded-lg bg-success-500/10 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-success-500">
+          <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
+          Estado centralizado: obtenida / activa
+        </p>
+      )}
+
       <button
         onClick={onBuy}
         disabled={!canBuy}
