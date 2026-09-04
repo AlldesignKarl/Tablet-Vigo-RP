@@ -37,7 +37,7 @@ export const searchCitizenSchema = z.object({
 export const searchPlateSchema = z.object({ plate: z.string().trim().min(2).max(12) });
 
 export const fileComplaintSchema = z.object({
-  accusedId: z.string().uuid(),
+  accusedDescription: z.string().trim().min(2, 'Indica a quién denuncias.').max(200),
   reason: z.string().trim().min(5, 'Cuenta con un poco más de detalle el motivo.').max(500),
 });
 

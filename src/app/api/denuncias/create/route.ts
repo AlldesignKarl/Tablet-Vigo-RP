@@ -7,7 +7,7 @@ export const POST = withErrorHandling(async (req) => {
   const body = fileComplaintSchema.parse(await req.json());
 
   const { data, error } = await supabase.rpc('file_complaint', {
-    p_accused_id: body.accusedId,
+    p_accused_description: body.accusedDescription,
     p_reason: body.reason,
   });
   if (error) throw new ApiError(400, error.message);

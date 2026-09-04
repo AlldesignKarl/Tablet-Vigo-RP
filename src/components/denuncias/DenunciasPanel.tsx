@@ -2,19 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, FileWarning, Hourglass, Eye, CircleCheck } from 'lucide-react';
+import { Plus, FileWarning, Hourglass, Eye, CircleCheck } from 'lucide-react';
 import { formatDateTime } from '@/lib/format';
 import { useToast } from '@/components/ui/ToastProvider';
+import Portal from '@/components/ui/Portal';
 import type { Database } from '@/types/database';
 
 type Complaint = Database['public']['Views']['complaints_view']['Row'];
-type SearchResult = {
-  profile_id: string;
-  first_name: string;
-  last_name: string;
-  dni_number: string;
-  roblox_avatar_url: string | null;
-};
 
 const STATUS_META: Record<Complaint['status'], { label: string; icon: typeof Hourglass; className: string }> = {
   pendiente: { label: 'Pendiente', icon: Hourglass, className: 'bg-yellow-500/15 text-yellow-500' },
@@ -25,71 +19,40 @@ const STATUS_META: Record<Complaint['status'], { label: string; icon: typeof Hou
 export default function DenunciasPanel({ myComplaints }: { myComplaints: Complaint[] }) {
   const router = useRouter();
   const { push } = useToast();
-  const [query, setQuery] = useState('');
-  const [searchBy, setSearchBy] = useState<'nombre' | 'roblox'>('nombre');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [searched, setSearched] = useState(false);
-  const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [accused, setAccused] = useState<SearchResult | null>(null);
+  const [open, setOpen] = useState(false);
+  const [accusedDescription, setAccusedDescription] = useState('');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (query.trim().length < 2) {
-      push({ kind: 'error', title: 'Escribe al menos 2 letras para buscar' });
-      return;
-    }
-    setSearching(true);
-    setSearched(true);
-    setSearchError(null);
-    try {
-      const res = await fetch('/api/denuncias/search-citizen', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, by: searchBy }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.ok) {
-        const message = json.error || 'Error desconocido.';
-        push({ kind: 'error', title: 'No se pudo buscar', message });
-        setSearchError(message);
-        setResults([]);
-        return;
-      }
-      setResults(json.data ?? []);
-    } catch {
-      const message = 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
-      push({ kind: 'error', title: 'No se pudo conectar con el servidor', message });
-      setSearchError(message);
-      setResults([]);
-    } finally {
-      setSearching(false);
-    }
+  function closeForm() {
+    setOpen(false);
+    setAccusedDescription('');
+    setReason('');
+    setFormError(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!accused || reason.trim().length < 5) return;
+    if (accusedDescription.trim().length < 2 || reason.trim().length < 5) return;
     setSubmitting(true);
+    setFormError(null);
     try {
       const res = await fetch('/api/denuncias/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accusedId: accused.profile_id, reason }),
+        body: JSON.stringify({ accusedDescription, reason }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        push({ kind: 'error', title: 'No se pudo registrar la denuncia', message: json.error });
+        setFormError(json.error || 'Error desconocido.');
         return;
       }
-      push({ kind: 'success', title: 'Denuncia registrada', message: `Se ha registrado tu denuncia contra ${accused.first_name} ${accused.last_name}.` });
-      setAccused(null);
-      setReason('');
-      setQuery('');
-      setResults([]);
+      push({ kind: 'success', title: 'Denuncia enviada', message: 'La policía la revisará en su canal de denuncias.' });
+      closeForm();
       router.refresh();
+    } catch {
+      setFormError('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.');
     } finally {
       setSubmitting(false);
     }
@@ -97,123 +60,82 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200">
-          <FileWarning className="h-5 w-5" strokeWidth={1.75} />
-        </span>
-        <div>
-          <h1 className="text-xl font-bold text-white">Denuncias</h1>
-          <p className="text-xs text-slate-500">Pon una denuncia contra otro ciudadano para que la revise la policía.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200">
+            <FileWarning className="h-5 w-5" strokeWidth={1.75} />
+          </span>
+          <div>
+            <h1 className="text-xl font-bold text-white">Denuncias</h1>
+            <p className="text-xs text-slate-500">Pon una denuncia para que la revise la policía.</p>
+          </div>
         </div>
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-500"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2} />
+          Crear denuncia
+        </button>
       </div>
 
-      <div className="hud-panel space-y-4 p-5">
-        <h2 className="font-semibold text-white">Nueva denuncia</h2>
+      {open && (
+        <Portal>
+          <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+            <form onSubmit={handleSubmit} className="hud-panel my-auto w-full max-w-md space-y-4 p-6">
+              <h3 className="font-display text-lg font-bold text-white">Crear denuncia</h3>
 
-        {!accused ? (
-          <>
-            <div className="flex gap-1.5">
-              {(
-                [
-                  { value: 'nombre', label: 'Nombre y apellidos' },
-                  { value: 'roblox', label: 'Usuario de Roblox' },
-                ] as const
-              ).map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setSearchBy(opt.value)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                    searchBy === opt.value
-                      ? 'bg-accent-500/20 text-accent-400'
-                      : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={searchBy === 'roblox' ? 'Usuario de Roblox...' : 'Nombre y apellidos...'}
-                className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white outline-none focus:border-accent-500/60"
-              />
-              <button
-                type="submit"
-                disabled={searching}
-                className="flex items-center gap-1.5 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:opacity-50"
-              >
-                <Search className="h-4 w-4" strokeWidth={1.75} />
-                {searching ? 'Buscando…' : 'Buscar'}
-              </button>
-            </form>
-
-            {searchError && (
-              <p className="rounded-lg border border-danger-500/40 bg-danger-500/10 px-3 py-2 text-xs text-danger-500">
-                Error: {searchError}
-              </p>
-            )}
-
-            {results.length > 0 ? (
-              <div className="space-y-1.5">
-                {results.map((r) => (
-                  <button
-                    key={r.profile_id}
-                    onClick={() => setAccused(r)}
-                    className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/[0.02] p-3 text-left transition hover:border-accent-500/40"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-white">
-                        {r.first_name} {r.last_name}
-                      </p>
-                      <p className="font-mono text-xs text-slate-500">DNI {r.dni_number}</p>
-                    </div>
-                    <span className="text-xs font-medium text-accent-400">Denunciar →</span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              searched &&
-              !searching &&
-              !searchError && <p className="text-sm text-slate-500">No se ha encontrado a nadie con esos datos.</p>
-            )}
-          </>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="flex items-center justify-between rounded-lg border border-accent-500/40 bg-accent-500/10 p-3">
-              <div>
-                <p className="text-xs text-slate-400">Vas a denunciar a:</p>
-                <p className="text-sm font-semibold text-white">
-                  {accused.first_name} {accused.last_name}
+              {formError && (
+                <p className="rounded-lg border border-danger-500/40 bg-danger-500/10 px-3 py-2 text-xs text-danger-500">
+                  Error: {formError}
                 </p>
+              )}
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-400">
+                  ¿A quién denuncias?
+                </label>
+                <input
+                  required
+                  value={accusedDescription}
+                  onChange={(e) => setAccusedDescription(e.target.value)}
+                  placeholder="Nombre y apellidos, o si no lo sabes: vehículo, modelo, matrícula..."
+                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white outline-none focus:border-accent-500/60"
+                />
               </div>
-              <button
-                type="button"
-                onClick={() => setAccused(null)}
-                className="no-glow text-xs font-medium text-slate-400 underline hover:text-white"
-              >
-                Cambiar
-              </button>
-            </div>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Motivo de la denuncia (qué ha pasado, dónde, etc.)"
-              rows={4}
-              className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white outline-none focus:border-accent-500/60"
-            />
-            <button
-              type="submit"
-              disabled={submitting || reason.trim().length < 5}
-              className="w-full rounded-lg bg-accent-600 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting ? 'Enviando…' : 'Registrar denuncia'}
-            </button>
-          </form>
-        )}
-      </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-400">Motivo</label>
+                <textarea
+                  required
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Qué ha pasado, dónde, cuándo..."
+                  rows={4}
+                  className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white outline-none focus:border-accent-500/60"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || accusedDescription.trim().length < 2 || reason.trim().length < 5}
+                  className="rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {submitting ? 'Enviando…' : 'Enviar denuncia'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </Portal>
+      )}
 
       <div className="hud-panel p-5">
         <h2 className="mb-3 font-semibold text-white">Mis denuncias</h2>
@@ -224,12 +146,14 @@ export default function DenunciasPanel({ myComplaints }: { myComplaints: Complai
             {myComplaints.map((c) => {
               const meta = STATUS_META[c.status];
               const StatusIcon = meta.icon;
+              const accusedLabel =
+                c.accused_id && c.accused_first_name ? `${c.accused_first_name} ${c.accused_last_name}` : c.accused_description;
               return (
                 <div key={c.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-sm text-white">
-                        Contra <span className="font-semibold">{c.accused_first_name} {c.accused_last_name}</span>
+                        Contra <span className="font-semibold">{accusedLabel}</span>
                       </p>
                       <p className="mt-0.5 text-xs text-slate-400">{c.reason}</p>
                     </div>

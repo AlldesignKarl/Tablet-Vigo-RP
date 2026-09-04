@@ -143,7 +143,8 @@ export interface Database {
         Row: {
           id: string;
           reporter_id: string;
-          accused_id: string;
+          accused_id: string | null;
+          accused_description: string | null;
           reason: string;
           status: 'pendiente' | 'en_inspeccion' | 'cerrada';
           resolved_by: string | null;
@@ -357,10 +358,11 @@ export interface Database {
           reporter_first_name: string;
           reporter_last_name: string;
           reporter_dni_number: string;
-          accused_id: string;
-          accused_first_name: string;
-          accused_last_name: string;
-          accused_dni_number: string;
+          accused_id: string | null;
+          accused_first_name: string | null;
+          accused_last_name: string | null;
+          accused_dni_number: string | null;
+          accused_description: string | null;
           resolved_by: string | null;
         };
         Relationships: [];
@@ -439,7 +441,7 @@ export interface Database {
         Returns: { profile_id: string; first_name: string; last_name: string; dni_number: string; roblox_avatar_url: string | null }[];
       };
       file_complaint: {
-        Args: { p_accused_id: string; p_reason: string };
+        Args: { p_accused_description: string; p_reason: string };
         Returns: { success: boolean; message: string; complaint_id: string | null }[];
       };
       police_update_complaint_status: {

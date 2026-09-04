@@ -7,8 +7,6 @@
 -- quién denuncia (nombre, o descripción del vehículo/matrícula si no
 -- sabe el nombre) y el motivo, y la denuncia llega igualmente a la
 -- policía para que investigue.
--- Es idempotente: se puede ejecutar varias veces sin problema.
--- =====================================================================
 
 alter table public.complaints alter column accused_id drop not null;
 alter table public.complaints add column if not exists accused_description text;

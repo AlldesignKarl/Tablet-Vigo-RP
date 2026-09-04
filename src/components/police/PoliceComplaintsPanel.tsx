@@ -24,6 +24,10 @@ export default function PoliceComplaintsPanel({ complaints }: { complaints: Comp
 
   const selected = complaints.find((c) => c.id === selectedId) ?? null;
 
+  function accusedLabel(c: Complaint) {
+    return c.accused_id && c.accused_first_name ? `${c.accused_first_name} ${c.accused_last_name}` : c.accused_description;
+  }
+
   async function updateStatus(status: Status) {
     if (!selected) return;
     setUpdating(true);
@@ -75,9 +79,7 @@ export default function PoliceComplaintsPanel({ complaints }: { complaints: Comp
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-medium text-white">
-                      {c.accused_first_name} {c.accused_last_name}
-                    </p>
+                    <p className="truncate text-sm font-medium text-white">{accusedLabel(c)}</p>
                     <span className={`flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${meta.className}`}>
                       <StatusIcon className="h-2.5 w-2.5" strokeWidth={2} />
                     </span>
@@ -95,10 +97,10 @@ export default function PoliceComplaintsPanel({ complaints }: { complaints: Comp
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-4">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-500">Denunciado</p>
-                  <p className="text-lg font-bold text-white">
-                    {selected.accused_first_name} {selected.accused_last_name}
-                  </p>
-                  <p className="font-mono text-xs text-slate-500">DNI {selected.accused_dni_number}</p>
+                  <p className="text-lg font-bold text-white">{accusedLabel(selected)}</p>
+                  {selected.accused_id && (
+                    <p className="font-mono text-xs text-slate-500">DNI {selected.accused_dni_number}</p>
+                  )}
                 </div>
                 {(() => {
                   const meta = STATUS_META[selected.status];
