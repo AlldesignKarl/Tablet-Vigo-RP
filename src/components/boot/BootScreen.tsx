@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 export default function BootScreen() {
@@ -17,8 +18,8 @@ export default function BootScreen() {
       <div className="pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-accent-500/20 blur-[120px]" />
 
       <div className="relative z-10 flex flex-col items-center gap-6 px-6 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-accent-500/40 bg-accent-500/10 shadow-glow animate-bootPulse">
-          <span className="text-3xl">🛡️</span>
+        <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-accent-500/40 shadow-glow animate-bootPulse">
+          <Image src="/logo.webp" alt="Vigo RP" fill className="object-cover" priority />
         </div>
 
         <div>

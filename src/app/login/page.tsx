@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -70,8 +71,8 @@ function LoginContent() {
 
   return (
     <div className="hud-panel scan-overlay w-full max-w-sm p-8 text-center">
-      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-accent-500/40 bg-accent-500/10 text-3xl shadow-[0_0_30px_rgba(59,130,246,0.35)]">
-        🛡️
+      <div className="relative mx-auto mb-6 h-16 w-16 overflow-hidden rounded-2xl border border-accent-500/40 shadow-[0_0_30px_rgba(59,130,246,0.35)]">
+        <Image src="/logo.webp" alt="Vigo RP" fill className="object-cover" />
       </div>
       <p className="font-display text-glow text-[11px] font-extrabold tracking-[0.4em] text-accent-400">VIGO RP</p>
       <h1 className="mt-2 font-display text-xl font-bold tracking-wide text-white">Acceso a la tablet</h1>

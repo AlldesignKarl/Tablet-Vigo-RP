@@ -99,8 +99,8 @@ export default function TabletShell({
         <div className="hud-panel scan-overlay flex flex-1 flex-col overflow-hidden border-2 border-white/10 sm:rounded-[1.75rem]">
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-accent-500/[0.06] via-transparent to-transparent px-4 py-3 sm:px-6">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-accent-500/30 bg-accent-500/10 text-lg shadow-[0_0_16px_rgba(59,130,246,0.25)]">
-                🛡️
+              <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-accent-500/30 shadow-[0_0_16px_rgba(59,130,246,0.25)]">
+                <Image src="/logo.webp" alt="Vigo RP" fill className="object-cover" />
               </span>
               <div>
                 <p className="font-display text-glow text-xs font-extrabold tracking-[0.3em] text-accent-400">VIGO RP</p>
